@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#Autor: Adrian Busse
 
 sh ./chce_LAMP.sh
 
