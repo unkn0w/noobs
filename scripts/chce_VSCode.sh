@@ -21,8 +21,7 @@ pass=`head -c255 /dev/urandom | base64 | grep -Eoi '[a-z0-9]{12}' | head -n1`
 sed -i '/ip6-loopback/a ::              globalipv6' /etc/hosts
 
 # stwórz plik konfiguracyjny dla VSCode z powyższym hasłem
-
 echo -e "bind-addr: globalipv6:80\nauth: password\npassword: $pass\ncert: false" >~/.config/code-server/config.yaml
 
 # uruchom VSCode
-systemctl stop code-server@root
+systemctl start code-server@root
