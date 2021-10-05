@@ -13,7 +13,7 @@ git clone https://github.com/unkn0w/noobs /opt/noobs
 ## Jak tego używać?
 
 1) Wejdź do katalogu /opt/noobs/scripts
-2) Uruchom skrypt odpowiedzialny za postawienie wybranej 
+2) Uruchom skrypt odpowiedzialny za postawienie wybranej usługi
 
 ## Dołącz do projektu
 
