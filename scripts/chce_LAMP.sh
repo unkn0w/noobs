@@ -15,11 +15,18 @@ apt install -y apache2 php8.0 libapache2-mod-php8.0 php8.0-zip php8.0-xml php8.0
 # dodanie MariaDB (klient i serwer)
 apt install -y mariadb-server mariadb-client
 
+# uruchomienie serwera mariadb
+systemctl start mariadb
+
 # aktywacja mod_rewrite dla wspierania krótkich linków - np. w Wordpress
 a2enmod rewrite
 
 # restart usługi po dodaniu nowego modułu
 systemctl restart apache2
+
+# dodanie autostartu do mariadb i apache
+systemctl enable apache2
+systemctl enable mariadb
 
 # Usuwamy domyślną 
 rm /var/www/html/index.html
