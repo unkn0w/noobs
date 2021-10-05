@@ -2,6 +2,13 @@
 # Skrypt stawia najnowszą wersję VSCode Server
 # Autor: Jakub 'unknow' Mrugalski
 
+# Check if user is root
+if [ "$(id -u)" != "0" ]; then
+	echo "This script must be run as root" 1>&2
+	echo "Try: sudo $0" 1>&2
+	exit 1
+fi
+
 # pobierz linka do najnowszej paczki
 latest=`curl -s https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb'`
 

@@ -2,6 +2,13 @@
 # LAMP = Linux + Apache + MySQL (MariaDB) + PHP
 # Autor: Jakub 'unknow' Mrugalski
 
+# Check if user is root
+if [ "$(id -u)" != "0" ]; then
+	echo "This script must be run as root" 1>&2
+	echo "Try: sudo $0" 1>&2
+	exit 1
+fi
+
 apt update
 apt install -y software-properties-common 
 
