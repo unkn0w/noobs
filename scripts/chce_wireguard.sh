@@ -2,6 +2,12 @@
 # Autor skryptu: Andrzej Szczepaniak
 # Poprawki: Jakub 'unknow' Mrugalski
 
+# Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
+if [[ $EUID -ne 0 ]]; then
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_wireguard.sh\033[0m lub zaloguj sie na konto roota."
+   exit 1
+fi
+
 apt update
 apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
 

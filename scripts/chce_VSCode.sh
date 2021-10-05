@@ -2,6 +2,12 @@
 # Skrypt stawia najnowszą wersję VSCode Server
 # Autor: Jakub 'unknow' Mrugalski
 
+# Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
+if [[ $EUID -ne 0 ]]; then
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_VSCode.sh\033[0m lub zaloguj sie na konto roota."
+   exit 1
+fi
+
 # pobierz linka do najnowszej paczki
 latest=`curl -s https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb'`
 
