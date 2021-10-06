@@ -65,6 +65,8 @@ a2enmod setenvif
 service apache2 reload
 service apache2 restart
 
+rm -v "$nextcloud_tmp"
+
 echo "USERNAME=$USERNAME
 PASSWORD=$PASSWORD
 DB_USER=$DB_USER
