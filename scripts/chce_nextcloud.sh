@@ -3,10 +3,10 @@
 # Autor: Mariusz 'maniek205' Kowalski
 
 USERNAME=admin
-PASSWORD=admin
+PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13) 
 
 DB_USER=root
-DB_PASS=admin
+DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13) 
 
 #Set Timezone to prevent installation interruption
 ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
@@ -59,3 +59,7 @@ a2enmod setenvif
 service apache2 reload
 service apache2 restart
 
+echo "USERNAME=$USERNAME
+PASSWORD=$PASSWORD
+DB_USER=$DB_USER
+DB_PASS=$DB_PASS"
