@@ -2,31 +2,31 @@
 # Tworzenie nowego uzytkownika, z dostepem do sudo i kopia authorized_keys
 # Autor: Radoslaw Karasinski
 
-read -p "Podaj nazwe nowego uzytkownika: " USERNAME
+read -p "Podaj nazwe nowego uzytkownika: " username
 
-if sudo id "$USERNAME" &>/dev/null; then
+if sudo id "$username" &>/dev/null; then
     echo "Podany uzytkownik juz istnieje!"
     exit
 fi
 
 # stworz nowego uzytkownika
-sudo adduser $USERNAME
+sudo adduser $username
 
 # dodaj nowego uzytkownika do sudo
-sudo usermod -aG sudo $USERNAME
+sudo usermod -aG sudo $username
 
-SSH_DIR="/home/$USERNAME/.ssh"
+ssh_dir="/home/$username/.ssh"
 
 # stworz folder na ustawienia ssh oraz ustaw odpowiednie prawa
-sudo mkdir -p $SSH_DIR
-sudo chmod 700 $SSH_DIR
+sudo mkdir -p $ssh_dir
+sudo chmod 700 $ssh_dir
 
 # stworz authorized_keys oraz ustaw odpowiednie prawa
-sudo touch $SSH_DIR/authorized_keys
-sudo chmod 600 $SSH_DIR/authorized_keys
+sudo touch $ssh_dir/authorized_keys
+sudo chmod 600 $ssh_dir/authorized_keys
 
 # zmien wlasciciela folderu i plikow
-sudo chown -R $USERNAME:$USERNAME $SSH_DIR
+sudo chown -R $username:$username $ssh_dir
 
 # skopiuj klucze obecnego uzytkownika do nowo stworzoneg
-cat ~/.ssh/authorized_keys | sudo tee -a $SSH_DIR/authorized_keys >/dev/null
+cat ~/.ssh/authorized_keys | sudo tee -a $ssh_dir/authorized_keys >/dev/null
