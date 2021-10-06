@@ -68,4 +68,3 @@ else
     echo -e "Istnieje juz wordpress pod sciezka $wordpress_folder automayczna instalacja nie jest możliwa.\nJesli to nieuzywany wordpress usun go i ponow skrypt albo zainstaluj wordpressa recznie pod inna sciezka.";
     exit 9
 fi
-cd
