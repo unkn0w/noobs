@@ -1,6 +1,6 @@
 #!/bin/bash
 # NEXTCLOUD installation script
-# Autor: Mariusz 'unknow' Kowalski
+# Autor: Mariusz 'maniek205' Kowalski
 
 USERNAME=admin
 PASSWORD=admin
