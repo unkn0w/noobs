@@ -1,7 +1,7 @@
 #!/bin/bash
 # Skrypt stawia najnowszą wersję VSCode Server
 # Autor: Jakub 'unknow' Mrugalski
-# Poprawki: Maciej Loper
+# Poprawki: Maciej Loper @2021-10
 
 [ "$EUID" -eq 0 ] && { echo "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; exit 1; }
 
