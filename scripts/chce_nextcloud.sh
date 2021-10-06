@@ -26,9 +26,15 @@ GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost';
 FLUSH PRIVILEGES;"
 
 #Downloading nextcloud zip file
-apt install -y wget tar
-wget https://download.nextcloud.com/server/releases/nextcloud-22.2.0.tar.bz2
-tar -xf nextcloud-22.2.0.tar.bz2
+apt install -y wget tar curl
+
+nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
+	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"')
+nextcloud_tmp="/tmp/nextcloud.tar.bz2"
+
+wget "$nextcloud_link" -O "$nextcloud_tmp"
+tar -xf "$nextcloud_tmp"
+
 #Copy nextcloud to apache folder
 rm /var/www/html/index.html
 cp -r nextcloud/ /var/www/html/
