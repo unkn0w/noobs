@@ -3,31 +3,95 @@
 # Autor: Jakub 'unknow' Mrugalski
 # Poprawki: Maciej Loper @2021-10
 
-[ "$EUID" -eq 0 ] && { echo "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; exit 1; }
+# uzycie: ./chce_VSCode.sh [port]
+
+# ustawienia
+APP_NAME="code-server"
+PKG_FILE="/tmp/vscode.deb"
+APP_PATH="$HOME/.config/$APP_NAME"
+SERVICE_FILE="/lib/systemd/system/$APP_NAME@.service"
+CONF_FILE="$APP_PATH/config.yaml"
+
+status() {
+    echo -e "\e[0;37m[x] \e[1;37m$1\e[0;0m"
+}
+
+err() {
+    echo -e "\e[0;31m[!] \e[1;31m$1\e[0;0m";
+    exit 1;
+}
+
+usage (){
+    echo "Skladnia: $0 [port]";
+    exit 3;
+}
+
+# start -----------------------------
+[ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
+sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
+
+# sprawdz port
+port="${1:-80}"
+[ "$port" -eq "$port" ] 2>/dev/null || { echo "Port musi być liczbą!"; exit 2; }
+[ "$port" -le 1024 ] && as_root=true || as_root=false 
+status "sprawdzanie portu $port"
+sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. skladnia: $0 [port]."; } 
 
 # pobierz linka do najnowszej paczki
 latest="$(curl -s https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb')"
+status "najnowsza dostepna wersja $APP_NAME to '$latest'"
 
-# ściagnij paczke z powyższego linka
-wget "$latest" -O /tmp/vscode.deb
+# ściagnij paczke z powyższego linka (jeśli nie istnieje)
+status "pobieranie instalatora"
+[ -f "$PKG_FILE" ] || wget "$latest" -O $PKG_FILE
 
-# zainstaluj paczkę
-sudo dpkg -i /tmp/vscode.deb
+# sprawdz czy instnieje i zainstaluj paczkę
+dpkg --status code-server &>/dev/null || sudo dpkg -i $PKG_FILE
 
 # załóż katalog na configi
-mkdir -p ~/.config/code-server
+status "tworzenie katalogow aplikacji"
+mkdir -p "$APP_PATH" 2>/dev/null
 
 # wygeneruj losowe, 12 znakowe hasło
 pass="$(head -c255 /dev/urandom | base64 | grep -Eoi '[a-z0-9]{12}' | head -n1)"
+status "wygenerowane haslo: $pass"
 
 # utwórz hosta o nazwie 'globalipv6' reprezentującego globalny adres IPv6
+status "dodawanie 'globalipv6' do '/etc/hosts'"
 sudo sed -i '/ip6-loopback/a ::              globalipv6' /etc/hosts
 
 # stwórz plik konfiguracyjny dla VSCode z powyższym hasłem
-echo -e "bind-addr: globalipv6:80\nauth: password\npassword: $pass\ncert: false" >~/.config/code-server/config.yaml
+status "tworzenie pliku konfiguracyjnego '$CONF_FILE'"
+echo -e "bind-addr: globalipv6:$port\nauth: password\npassword: $pass\ncert: false" > "$CONF_FILE"
+
+# konfiguruj usluge
+status "konfigurowanie serwisu '$SERVICE_FILE'"
+sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/code-server --bind-addr 0.0.0.0:$port|g" "$SERVICE_FILE"
+sudo systemctl daemon-reload
+
+# ustaw uzytkownika
+if "$as_root" ; then
+    user="root"
+else
+    user="$USER"
+fi
+status "ustawianie uzytkownika jako '$user'"
+
+# sprzatanie
+status "czyszczenie instalatora"
+rm "$PKG_FILE"
+sudo systemctl stop code-server@"$user" &>/dev/null
+sudo systemctl stop code-server@root &>/dev/null
 
 # uruchom VSCode
-sudo systemctl start code-server@"$USER"
+status 'uruchomienie aplikacji'
+sudo systemctl start code-server@"$user"
 
 # pokaz status
-systemctl status code-server@"$USER"
+status 'sprawdzenie statusu'
+addr="http://localhost:$port"
+
+systemctl status code-server@"$user"
+echo
+echo "========================================"
+echo -e "\e[0;32mGotowe, serwer jest dostepny pod adresem: \e[1;33m$addr\e[0;32m, a haslo to: \e[1;33m$pass \e[0;0m"
