@@ -3,10 +3,10 @@
 # Autor: Mariusz 'maniek205' Kowalski
 
 USERNAME=admin
-PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13) 
+PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 DB_USER=root
-DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13) 
+DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 #Set Timezone to prevent installation interruption
 ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
@@ -20,9 +20,9 @@ apt install -y php7.4-gmp php7.4-bcmath php-imagick php7.4-xml php7.4-zip
 
 #Configuring mariaDB
 /etc/init.d/mysql start
-mysql -u$DB_USER -p$DB_PASS -e "CREATE USER '$USERNAME'@'localhost' IDENTIFIED BY '$PASSWORD'; 
-CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci; 
-GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost'; 
+mysql -u"$DB_USER" -p"$DB_PASS" -e "CREATE USER '$USERNAME'@'localhost' IDENTIFIED BY '$PASSWORD';
+CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost';
 FLUSH PRIVILEGES;"
 
 #Downloading nextcloud zip file
