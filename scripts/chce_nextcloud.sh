@@ -9,8 +9,7 @@ DB_USER=root
 DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 #Set Timezone to prevent installation interruption
-ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
-
+[[ ! -f /etc/localtime ]] && ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
 
 #Installing prerequisites https://docs.nextcloud.com/server/latest/admin_manual/installation/example_ubuntu.html
 apt update
