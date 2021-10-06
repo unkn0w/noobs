@@ -47,10 +47,6 @@ status "pobieranie instalatora"
 # sprawdz czy instnieje i zainstaluj paczkę
 dpkg --status code-server &>/dev/null || sudo dpkg -i $PKG_FILE
 
-# załóż katalog na configi
-status "tworzenie katalogow aplikacji"
-mkdir -p "$APP_PATH" 2>/dev/null
-
 # wygeneruj losowe, 12 znakowe hasło
 pass="$(head -c255 /dev/urandom | base64 | grep -Eoi '[a-z0-9]{12}' | head -n1)"
 status "wygenerowane haslo: $pass"
@@ -63,8 +59,10 @@ sudo sed -i '/ip6-loopback/a ::              globalipv6' /etc/hosts
 if "$as_root" ; then
     user="root";
     CONF_FILE="/root/.config/$APP_NAME/config.yaml";
+    sudo mkdir -p "/root/.config/$APP_NAME" 2>/dev/null
 else
     user="$USER"
+    mkdir -p "$APP_PATH" 2>/dev/null
 fi
 status "ustawianie uzytkownika jako '$user'"
 
