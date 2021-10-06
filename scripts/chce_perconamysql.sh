@@ -1,6 +1,6 @@
 checkport=$(awk '{print substr($1,2); }' /etc/hostname)
 
-if [ "$(id -u)" == "0" ]; then
+if [ "$(id -u)" != "0" ]; then
 
 cd $HOME && wget https://downloads.percona.com/downloads/Percona-Server-5.7/Percona-Server-5.7.35-38/binary/tarball/Percona-Server-5.7.35-38-Linux.x86_64.glibc2.12-minimal.tar.gz && tar -xzvf Percona-Server-5.7.35-38-Linux.x86_64.glibc2.12-minimal.tar.gz && rm Percona-Server-5.7.35-38-Linux.x86_64.glibc2.12-minimal.tar.gz && mv Percona-Server-5.7.35-38-Linux.x86_64.glibc2.12-minimal/ mysql/ && mkdir mysql/mysql_secure
 
