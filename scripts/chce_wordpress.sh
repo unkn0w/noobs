@@ -15,11 +15,12 @@ wget -q -O /etc/bash_completion.d/wp-cli  https://raw.githubusercontent.com/wp-c
 chmod +x /usr/local/bin/wp
 chmod +x /etc/bash_completion.d/wp-cli
 
-if mkdir -p /var/www/html/wp; then
-    chown www-data:www-data /var/www/html/wp
+wordpress_folder="/var/www/html/wp"
+if mkdir -p "$wordpress_folder"; then
+    chown www-data:www-data $wordpress_folder
 fi
 
-cd /var/www/html/wp
+cd "$wordpress_folder" || { echo "Directory cannot exist"; exit; }
 if ! /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
 
     # Generyczna baza danych
@@ -43,10 +44,10 @@ if ! /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
     find . -exec chown www-data:www-data {} \;
 
     # Zastapienie defaultowej sciezki documentroot w konfiguracji apache2 i pozniejszy restart
-    sed -i "s#/var/www/html#/var/www/html/wp#g" '/etc/apache2/sites-available/000-default.conf'
+    sed -i "s#/var/www/html#$wordpress_folder#g" '/etc/apache2/sites-available/000-default.conf'
     apache2ctl -t && apache2ctl graceful
 else
-    echo -e "Istnieje juz wordpress pod sciezka \/var\/www\/html\/wp automayczna instalacja nie jest możliwa.\nJesli to nieuzywany wordpress usun go i ponow skrypt albo zainstaluj wordpressa recznie pod inna sciezka.";
+    echo -e "Istnieje juz wordpress pod sciezka $wordpress_folder automayczna instalacja nie jest możliwa.\nJesli to nieuzywany wordpress usun go i ponow skrypt albo zainstaluj wordpressa recznie pod inna sciezka.";
     exit 9
 fi
 cd
