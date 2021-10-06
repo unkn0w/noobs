@@ -25,7 +25,7 @@ CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_ge
 GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost';
 FLUSH PRIVILEGES;"
 
-#Downloading nextcloud zip file
+#Downloading nextcloud tar.bz2 file
 apt install -y wget tar curl
 
 nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
