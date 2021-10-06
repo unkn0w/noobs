@@ -27,6 +27,8 @@ Kilka zasad:
 4) Pliki tymczasowe skrypt powinien wrzucać do /tmp/
 5) Podpisz się w komentarzu na początku skryptu, aby każdy wiedział komu ma być wdzięczny :)
 6) Nie zaszywaj w skryptach na stałe nazw maszyn, adresów IP serwera itp.
+7) Pamiętaj, aby dodawany skrypt był wykonywalny (chmod +x)
+8) Stawianie nowych usług wrzucaj do katalogu **scripts/**, a wykonywanie akcji systemowych do **actions/**
 
 ## Licencja
 [MIT](https://choosealicense.com/licenses/mit/)
