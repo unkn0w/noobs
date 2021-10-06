@@ -8,9 +8,11 @@ PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 DB_USER=root
 DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13) 
 
+NEXT_CLOUD_USER=admin
+NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
+
 #Set Timezone to prevent installation interruption
 ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
-
 
 #Installing prerequisites https://docs.nextcloud.com/server/latest/admin_manual/installation/example_ubuntu.html
 apt update
@@ -27,11 +29,16 @@ FLUSH PRIVILEGES;"
 
 #Downloading nextcloud zip file
 apt install -y wget tar
-wget https://download.nextcloud.com/server/releases/nextcloud-22.2.0.tar.bz2
-tar -xf nextcloud-22.2.0.tar.bz2
-#Copy nextcloud to apache folder
+wget https://download.nextcloud.com/server/releases/latest.tar.bz2
+echo "Unpacking nextcloud..."
+tar -xf latest.tar.bz2
+echo "Done"
+rm latest.tar.bz2
+#Move nextcloud to apache folder
 rm /var/www/html/index.html
-cp -r nextcloud/ /var/www/html/
+echo "Moving nextcloud to apache folder..."
+mv nextcloud/ /var/www/html/
+echo "Done"
 
 #Apache config
 cat > /etc/apache2/sites-available/nextcloud.conf <<EOL
@@ -59,7 +66,18 @@ a2enmod setenvif
 service apache2 reload
 service apache2 restart
 
+chown -R www-data:www-data /var/www/html/
+
+apt install -y sudo
+
+cd /var/www/html/nextcloud
+sudo -u www-data php occ  maintenance:install --database \
+"mysql" --database-name "nextcloud"  --database-user "$USERNAME" --database-pass \
+"$PASSWORD" --admin-user "$NEXT_CLOUD_USER" --admin-pass "$NEXT_CLOUD_PASS"
+
 echo "USERNAME=$USERNAME
 PASSWORD=$PASSWORD
 DB_USER=$DB_USER
-DB_PASS=$DB_PASS"
+DB_PASS=$DB_PASS
+NC_USER=$NEXT_CLOUD_USER
+NC_PASS=$NEXT_CLOUD_PASS"
