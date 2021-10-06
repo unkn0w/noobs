@@ -32,18 +32,17 @@ sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - 
 
 # sprawdz port
 port="${1:-80}"
-[ "$port" -eq "$port" ] 2>/dev/null || { echo "Port musi być liczbą!"; exit 2; }
-[ "$port" -le 1024 ] && as_root=true || as_root=false 
 status "sprawdzanie portu $port"
-sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. skladnia: $0 [port]."; } 
+[ "$port" -eq "$port" ] 2>/dev/null || { echo "Port musi byc liczba!"; exit 2; }
+[ "$port" -le 1024 ] && as_root=true || as_root=false 
+sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. Skladnia: $0 [port]."; } 
 
 # pobierz linka do najnowszej paczki
 latest="$(curl -s https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb')"
-status "najnowsza dostepna wersja $APP_NAME to '$latest'"
 
 # ściagnij paczke z powyższego linka (jeśli nie istnieje)
 status "pobieranie instalatora"
-[ -f "$PKG_FILE" ] || wget "$latest" -O $PKG_FILE
+[ -f "$PKG_FILE" ] || wget "$latest" -O $PKG_FILE &>/dev/null
 
 # sprawdz czy instnieje i zainstaluj paczkę
 dpkg --status code-server &>/dev/null || sudo dpkg -i $PKG_FILE
@@ -60,22 +59,23 @@ status "wygenerowane haslo: $pass"
 status "dodawanie 'globalipv6' do '/etc/hosts'"
 sudo sed -i '/ip6-loopback/a ::              globalipv6' /etc/hosts
 
-# stwórz plik konfiguracyjny dla VSCode z powyższym hasłem
-status "tworzenie pliku konfiguracyjnego '$CONF_FILE'"
-echo -e "bind-addr: globalipv6:$port\nauth: password\npassword: $pass\ncert: false" > "$CONF_FILE"
-
-# konfiguruj usluge
-status "konfigurowanie serwisu '$SERVICE_FILE'"
-sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/code-server --bind-addr 0.0.0.0:$port|g" "$SERVICE_FILE"
-sudo systemctl daemon-reload
-
 # ustaw uzytkownika
 if "$as_root" ; then
-    user="root"
+    user="root";
+    CONF_FILE="/root/.config/$APP_NAME/config.yaml";
 else
     user="$USER"
 fi
 status "ustawianie uzytkownika jako '$user'"
+
+# stwórz plik konfiguracyjny dla VSCode z powyższym hasłem
+status "tworzenie pliku konfiguracyjnego '$CONF_FILE'"
+echo -e "bind-addr: globalipv6:$port\nauth: password\npassword: $pass\ncert: false" | sudo tee "$CONF_FILE" >/dev/null
+
+# konfiguruj usluge
+status "konfigurowanie serwisu '$SERVICE_FILE'"
+sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/code-server --bind-addr [::]:$port|g" "$SERVICE_FILE"
+sudo systemctl daemon-reload
 
 # sprzatanie
 status "czyszczenie instalatora"
@@ -89,9 +89,12 @@ sudo systemctl start code-server@"$user"
 
 # pokaz status
 status 'sprawdzenie statusu'
+sleep 3
 addr="http://localhost:$port"
-
 systemctl status code-server@"$user"
+
+echo
+netstat -ltn | grep --color "$port"
 echo
 echo "========================================"
 echo -e "\e[0;32mGotowe, serwer jest dostepny pod adresem: \e[1;33m$addr\e[0;32m, a haslo to: \e[1;33m$pass \e[0;0m"
