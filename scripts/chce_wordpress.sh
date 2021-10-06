@@ -5,6 +5,9 @@
 # Check if you are root
 [[ $EUID != 0 ]]  && { echo "Please run as root" ; exit; }
 
+# Configuring tzdata if not exist
+[[ ! -f /etc/localtime ]] && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
+
 if test -f /opt/noobs/scripts/chce_LAMP.sh; then
     . /opt/noobs/scripts/chce_LAMP.sh
 else
