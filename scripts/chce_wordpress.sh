@@ -43,8 +43,20 @@ if ! /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
 
     # Instalacja wordpressa z uzyciem wp-cli
     # FIX: https://github.com/wp-cli/core-command/issues/30#issuecomment-323069641
-    WP_CLI_CACHE_DIR=/dev/null /usr/local/bin/wp core download --allow-root --locale=pl_PL
-    /usr/local/bin/wp config create --allow-root --dbname=wp_$DB --dbuser=wp_$DB --dbpass=$DBPASS --locale=pl_PL
+    WP_CLI_CACHE_DIR=/dev/null /usr/local/bin/wp \
+		core \
+		download \
+		--allow-root \
+		--locale=pl_PL
+
+    /usr/local/bin/wp \
+		config \
+		create \
+		--allow-root \
+		--dbname=wp_"$DB" \
+		--dbuser=wp_"$DB" \
+		--dbpass="$DBPASS" \
+		--locale=pl_PL
 
     # nadawanie uprawnien na pliki
     find . -exec chown www-data:www-data {} \;
