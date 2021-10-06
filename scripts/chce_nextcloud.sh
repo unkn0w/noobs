@@ -29,7 +29,7 @@ FLUSH PRIVILEGES;"
 apt install -y wget tar curl
 
 nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
-	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"')
+	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"' | sed 's/"//g')
 nextcloud_tmp="/tmp/nextcloud.tar.bz2"
 
 wget "$nextcloud_link" -O "$nextcloud_tmp"
