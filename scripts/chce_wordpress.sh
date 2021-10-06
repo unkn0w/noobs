@@ -2,6 +2,9 @@
 #
 # Author: Rafal Masiarek <rafal@masiarek.pl>
 
+# Check if you are root
+[[ $EUID != 0 ]]  && { echo "Please run as root" ; exit; }
+
 if test -f /opt/noobs/scripts/chce_LAMP.sh; then
     . /opt/noobs/scripts/chce_LAMP.sh
 else
