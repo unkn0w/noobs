@@ -1,6 +1,6 @@
 # NOOBS - zestaw skryptów dla początkujących
 
-Skrypty przeznaczone są dla uzytkowników usługi MIKR.US, pracujących w systemie Ubuntu 20.04, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa
+Skrypty przeznaczone są dla uzytkowników usługi [MIKR.US](https://mikr.us), pracujących w systemie Ubuntu 20.04, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa
 
 ## Instalacja
 
