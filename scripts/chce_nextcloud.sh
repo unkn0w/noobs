@@ -8,6 +8,9 @@ PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 DB_USER=root
 DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
+NEXT_CLOUD_USER=admin
+NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
+
 #Set Timezone to prevent installation interruption
 [[ ! -f /etc/localtime ]] && ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
 
@@ -36,8 +39,10 @@ tar -xf "$nextcloud_tmp"
 
 #Copy nextcloud to apache folder
 rm /var/www/html/index.html
+echo "Copying nextcloud to apache folder..."
 cp -r nextcloud/ /var/www/html/
-
+rm -v "$nextcloud_tmp"
+echo "Done",
 #Apache config
 cat > /etc/apache2/sites-available/nextcloud.conf <<EOL
 Alias /nextcloud "/var/www/html/nextcloud/"
@@ -64,9 +69,18 @@ a2enmod setenvif
 service apache2 reload
 service apache2 restart
 
-rm -v "$nextcloud_tmp"
+chown -R www-data:www-data /var/www/html/
+
+apt install -y sudo
+
+cd /var/www/html/nextcloud  || exit
+sudo -u www-data php occ  maintenance:install --database \
+"mysql" --database-name "nextcloud"  --database-user "$USERNAME" --database-pass \
+"$PASSWORD" --admin-user "$NEXT_CLOUD_USER" --admin-pass "$NEXT_CLOUD_PASS"
 
 echo "USERNAME=$USERNAME
 PASSWORD=$PASSWORD
 DB_USER=$DB_USER
-DB_PASS=$DB_PASS"
+DB_PASS=$DB_PASS
+NC_USER=$NEXT_CLOUD_USER
+NC_PASS=$NEXT_CLOUD_PASS"
