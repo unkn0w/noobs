@@ -1,0 +1,24 @@
+name: Test changed scripts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run-test-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout generator repository
+        uses: actions/checkout@v1
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v2.1
+      - name: Test chec_LAMP.sh
+        if: contains(steps.changed-files.outputs.modified_files, 'scripts/chce_LAMP.sh')
+        run: |
+          ./scripts/chce_LAMP.sh
+          ./scripts/tests/chce_LAMP_test.sh
