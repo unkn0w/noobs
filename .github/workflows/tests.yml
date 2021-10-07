@@ -5,6 +5,8 @@ name: CI
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
+  on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -28,4 +30,4 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Test shell scripts
-        run: shellcheck scripts/*.sh
+        run: shellcheck -e SC1091,SC2002 scripts/*.sh
