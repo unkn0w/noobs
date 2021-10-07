@@ -66,7 +66,6 @@ a2enmod env
 a2enmod dir
 a2enmod mime
 a2enmod setenvif
-service apache2 reload
 service apache2 restart
 
 chown -R www-data:www-data /var/www/html/
@@ -78,9 +77,35 @@ sudo -u www-data php occ  maintenance:install --database \
 "mysql" --database-name "nextcloud"  --database-user "$USERNAME" --database-pass \
 "$PASSWORD" --admin-user "$NEXT_CLOUD_USER" --admin-pass "$NEXT_CLOUD_PASS"
 
-echo "USERNAME=$USERNAME
-PASSWORD=$PASSWORD
+# czy user posiada /storage/?
+if [ -d /storage ]; then
+    echo "Znalazłem /storage - przenoszę dane do /storage/nextcloud_data";
+    mkdir /storage/nextcloud_data
+    rsync -av /var/www/html/nextcloud/data/ /storage/nextcloud_data/
+    chown -R www-data:www-data /storage/nextcloud_data/
+    rm -rf /var/www/html/nextcloud/data
+    ln -s /storage/nextcloud_data /var/www/html/nextcloud/data
+fi
+
+echo "
+== Dostępy na których działa Nextcloud ==
+MYSQL_USERNAME=$USERNAME
+MYSQL_PASSWORD=$PASSWORD
+
+
+== Dane do bazy danych ==
 DB_USER=$DB_USER
 DB_PASS=$DB_PASS
+
+== Dane do Logowania do panelu ==
 NC_USER=$NEXT_CLOUD_USER
-NC_PASS=$NEXT_CLOUD_PASS"
+NC_PASS=$NEXT_CLOUD_PASS
+
+Bardzo ważne:
+Edytuj plik /var/www/html/nextcloud/config/config.php
+Znajdź linijkę z tekstem 'localhost' i ponieżej dopisz swoją domenę na której będzie działać Nextcloud.
+
+P.S. Zapisałem te dane do /root/nextcloud.txt
+" | tee /root/nextcloud.txt
+
+chmod 600 /root/nextcloud.txt
