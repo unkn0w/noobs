@@ -19,5 +19,5 @@ jobs:
         uses: tj-actions/changed-files@v2.1
       - name: Test chec_LAMP.sh
         run: |
-          ./scripts/chce_LAMP.sh
+          sudo ./scripts/chce_LAMP.sh
           ./scripts/tests/chce_LAMP_test.sh
