@@ -15,11 +15,11 @@ cd /tmp/ && tar -zxvf go1.16.4.linux-amd64.tar.gz
 mv /tmp/go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-cd /tmp/wireguard-go
+cd /tmp/wireguard-go || exit
 make
 make install
 
-cd /tmp/wireguard-tools/src/
+cd /tmp/wireguard-tools/src/ || exit
 make
 make install
 
@@ -30,7 +30,7 @@ chmod 600 /etc/wireguard/*privatekey*
 
 cat /etc/wireguard/privatekey | wg pubkey > /etc/wireguard/publickey
 cat /etc/wireguard/client-privatekey | wg pubkey > /etc/wireguard/client-publickey
-srv=`hostname`
+srv=$(hostname)
 privkey=$(cat /etc/wireguard/privatekey)
 pubkey=$(cat /etc/wireguard/publickey)
 cliprivkey=$(cat /etc/wireguard/client-privatekey)
