@@ -2,7 +2,7 @@
 # NEXTCLOUD installation script
 # Autors: Mariusz 'maniek205' Kowalski, Marcin Wozniak
 
-USERNAME=admin
+USERNAME="admin"
 PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 DB_USER=root
