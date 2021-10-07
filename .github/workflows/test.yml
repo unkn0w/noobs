@@ -18,7 +18,7 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v2.1
       - name: Test chec_LAMP.sh
-        if: contains(steps.changed-files.outputs.modified_files, 'scripts/chce_LAMP.sh') || contains(steps.changed-files.outputs.modified_files, 'scripts/tests/chce_LAMP_test.sh')
+        if: contains(steps.changed-files.outputs.modified_files, 'scripts/tests/chce_LAMP_test.sh')
         run: |
           ./scripts/chce_LAMP.sh
           ./scripts/tests/chce_LAMP_test.sh
