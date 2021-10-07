@@ -20,4 +20,4 @@ jobs:
       - name: Test chec_LAMP.sh
         run: |
           sudo ./scripts/chce_LAMP.sh
-          ./scripts/tests/chce_LAMP_test.sh
+          ./tests/chce_LAMP_test.sh
