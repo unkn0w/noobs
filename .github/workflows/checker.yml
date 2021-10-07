@@ -1,0 +1,13 @@
+on: [pull_request]
+
+jobs:
+  shell-check:
+    runs-on: ubuntu-latest
+    name: Shell Checker
+    steps:
+      - uses: actions/checkout@v2
+      - uses: marounmaroun/shell-checker@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          severity: 'info'
+          exclude: ''
