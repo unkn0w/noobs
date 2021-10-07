@@ -73,7 +73,7 @@ chown -R www-data:www-data /var/www/html/
 
 apt install -y sudo
 
-cd /var/www/html/nextcloud
+cd /var/www/html/nextcloud  || exit
 sudo -u www-data php occ  maintenance:install --database \
 "mysql" --database-name "nextcloud"  --database-user "$USERNAME" --database-pass \
 "$PASSWORD" --admin-user "$NEXT_CLOUD_USER" --admin-pass "$NEXT_CLOUD_PASS"
