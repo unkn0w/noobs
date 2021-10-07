@@ -8,7 +8,7 @@ PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 DB_USER=root
 DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
-NEXT_CLOUD_USER=admin
+NEXT_CLOUD_USER="admin"
 NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 #Set Timezone to prevent installation interruption
