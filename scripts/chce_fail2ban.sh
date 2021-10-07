@@ -9,6 +9,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Zmienne konfiguracyjne
+COS=""
 BAN_TIME=30m
 FIND_TIME=3m
 MAXRETRY=5
