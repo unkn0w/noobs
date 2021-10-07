@@ -1,5 +1,5 @@
 #!/bin/bash
 
-sex -euxo pipefail
+set -euxo pipefail
 
 echo $USER
