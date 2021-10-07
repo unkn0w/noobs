@@ -8,7 +8,7 @@ cd "$HOME" && wget https://downloads.percona.com/downloads/Percona-Server-5.7/Pe
 
 cd "$HOME"/mysql && ./bin/mysqld --initialize-insecure --user="$checkuser" --basedir="$HOME"/mysql/ --datadir="$HOME"/mysql/data
 
-cd "$HOME"/mysql && ./bin/mysqld --basedir="$HOME"/mysql/ --datadir="$HOME"/mysql/data --log-error="$HOME"/mysql/data/mysql.err --pid-file="$HOME"/mysql/mysql.pid --secure-file-priv="$HOME"/mysql/mysql_secure --socket="$HOME"/mysql/thesock --port=30$checkport &
+cd "$HOME"/mysql && ./bin/mysqld --basedir="$HOME"/mysql/ --datadir="$HOME"/mysql/data --log-error="$HOME"/mysql/data/mysql.err --pid-file="$HOME"/mysql/mysql.pid --secure-file-priv="$HOME"/mysql/mysql_secure --socket="$HOME"/mysql/thesock --port=30"$checkport" &
 
 else echo "DON'T RUN THIS SCRIPT AS ROOT!"
 fi
