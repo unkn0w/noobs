@@ -1,5 +1,5 @@
 #!/bin/bash
-# Skrypt stawia najnowszą wersję VSCode Server
+# Skrypt instaluje i laczy sie z sieca ZeroTier
 # Autor: Maciej Loper @2021-10
 
 SLEEP=5
@@ -16,6 +16,7 @@ err() {
 
 usage (){
     echo "Uzycie: $0 <network_id>";
+    echo "Jesli nie masz konta, zarejestruj sie na: https://www.zerotier.com";
     exit 3;
 }
 
