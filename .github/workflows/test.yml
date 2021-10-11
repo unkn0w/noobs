@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Checkout generator repository
         uses: actions/checkout@v1
-      - name: Test chec_LAMP.sh
+      - name: Test chce_LAMP.sh
         # todo: run only on file changed
         run: |
           sudo ./scripts/chce_LAMP.sh
-          sudo ./tests/chce_LAMP_test.sh
+          # sudo ./tests/chce_LAMP_test.sh
