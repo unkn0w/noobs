@@ -4,10 +4,19 @@ Skrypty przeznaczone są dla uzytkowników usługi [MIKR.US](https://mikr.us), p
 
 ## Instalacja
 
-Najnowszą wersję skryptów pobierzesz poleceniem:
+Skrypty możesz zainstalować na dwa sposoby.
+
+➤  Metoda 'ręczna'
 
 ```bash
 git clone https://github.com/unkn0w/noobs /opt/noobs
+```
+
+➤ Metoda w pełni automatyczna (dla początkujących)
+
+
+```bash
+curl -s https://noobs.mikr.us | bash
 ```
 
 ## Jak tego używać?

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Tworzenie nowego uzytkownika, z dostepem do sudo i kopia authorized_keys
 # Autor: Radoslaw Karasinski
 
@@ -17,7 +17,7 @@ else
 	username=$(echo $1)
 fi
 
-# exit if the user name is empty
+# exit if the user doesn't exists
 if sudo id "$username" &>/dev/null; then
     echo "Podany uzytkownik juz istnieje!"
     exit
@@ -70,3 +70,5 @@ sudo chown -R $username:$username $ssh_dir
 
 # skopiuj klucze obecnego uzytkownika do nowo stworzoneg
 cat ~/.ssh/authorized_keys | sudo tee -a $ssh_dir/authorized_keys >/dev/null
+
+echo "Pomyślnie stworzono użytkownia ${username}."
