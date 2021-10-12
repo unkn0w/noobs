@@ -3,11 +3,11 @@
 # Autor: Radoslaw Karasinski
 
 
-if ! [ -z "$1" ]; then
+if [ -n "$1" ]; then
     port=$1
 else
     echo "Give desired port for netdata: (i.e. 20xxx or 30xxx):"
-    read port
+    read -r port
 fi
 
 
