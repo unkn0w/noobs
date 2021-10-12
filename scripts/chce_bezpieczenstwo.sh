@@ -1,14 +1,14 @@
 #!/bin/bash
 #Author Borys Gnaciński
 
-users_other_than_root(){
-    if [ "$(sudo getent passwd | grep /bin/bash | awk -F: '{print $1}' | grep -v root)" != "" ]
-    then
-        return true
-    else
-        return false
-    fi 
-}
+# privileges check
+if [ $EUID != 0 ] 
+then
+    echo "Uruchom skrypt jako root."
+    exit
+fi
+
+primary_user="$(sudo getent passwd | grep /bin/bash | awk -F: '{print $1}' | grep -v root | head -1)"
 
 # ssh securing
 securing_ssh(){
@@ -19,4 +19,9 @@ securing_ssh(){
     echo "X11Forwarding no" >> /etc/ssh/sshd_config
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config
     echo "MaxAuthTries 3" >> /etc/ssh/sshd_config
+}
+
+package_installation(){
+    sudo apt update
+    sudo apt install lynis debsums unattended-upgrades apt-show-versions
 }
