@@ -13,13 +13,13 @@
 while [ $# -gt 0 ]; do
     if [[ $1 == *"--"* ]]; then
         param="${1/--/}"
-        declare $param="$2"
+        declare "$param"="$2"
     fi
   shift
 done
 
 
-if ! [ -n "$port" ]; then
+if [ -z "$port" ]; then
     echo "Give desired port for netdata: (i.e. 20xxx or 30xxx):"
     read -r port
 fi
@@ -27,15 +27,15 @@ fi
 extra_args=()
 
 if [ -n "$token" ]; then
-    extra_args+=(--claim-token $token)
+    extra_args+=(--claim-token "$token")
 fi
 
 if [ -n "$rooms" ]; then
-    extra_args+=(--claim-rooms $rooms)
+    extra_args+=(--claim-rooms "$rooms")
 fi
 
 if [ -n "$url" ]; then
-    extra_args+=(--claim-url $url)
+    extra_args+=(--claim-url "$url")
 fi
 
 if [ -n "$duplicate" ]; then
