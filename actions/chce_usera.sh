@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tworzenie nowego uzytkownika, z dostepem do sudo i kopia authorized_keys
-# Autor: Radoslaw Karasinski, Grzegorz Ćwikliński
+# Autor: Radoslaw Karasinski, Grzegorz Ćwikliński, Szymon Hryszko
 
 # if no sudo, then exit
 if [ "$(id -u)" != "0" ]; then
