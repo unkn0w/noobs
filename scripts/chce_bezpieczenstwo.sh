@@ -50,6 +50,22 @@ fi
 echo "----------------------------------------------------------------------------------"
 echo "[!] Domyślny użytkownik to '$primary_user'. Zostanie on dodany do grupy 'ssh_group'."
 echo "----------------------------------------------------------------------------------"
+echo "[!] Uwaga! Ten skrypt: "
+echo " - wyłącza logowania hasłem", 
+echo " - wyłącza możliwość logowania na konto root(przez ssh)"
+echo " - ustawia maksymalną ilośc prób uwierzytelnienia na 3"
+echo " - wyłącza możliwość używania GUI przez ssh(X11Forwarding)"
+echo " - włącza uwierzytelnienie kluczem publicznym"
+echo "----------------------------------------------------------------------------------"
+
+# looking for ssh keys
+if [ -s /root/.ssh/authorized_keys ]
+then
+    echo "[!] Nie znaleziono klucza/kluczy ssh w '/root/.ssh/authorized_keys'."
+    echo "Umieść klucz/klucze w tym pliku i uruchom ponownie skrypt."
+    exit
+fi
+
 echo "[!] W kolejnym kroku zostaną pobrane różne pakiety. Podczas jednego z nich wyświetli się zapytanie o konfigurację, wybierz opcję 'brak konfiguracji'."
 read -p "Rozumiem (Enter)"
 echo "[*] Instalowanie potrzebnych pakietów..."
