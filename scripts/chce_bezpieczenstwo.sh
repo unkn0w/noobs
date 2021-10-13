@@ -12,6 +12,8 @@ primary_user="$(sudo getent passwd | grep /bin/bash | awk -F: '{print $1}' | gre
 
 # ssh securing
 securing_ssh(){
+    echo "" > /etc/ssh/sshd_config # cleaning config
+    echo "Include /etc/ssh/sshd_config.d/*.conf" >> /etc/ssh/sshd_config
     echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
     echo "AuthorizedKeysFile      .ssh/authorized_keys" >> /etc/ssh/sshd_config
     echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
@@ -19,6 +21,8 @@ securing_ssh(){
     echo "X11Forwarding no" >> /etc/ssh/sshd_config
     echo "PermitRootLogin no" >> /etc/ssh/sshd_config
     echo "MaxAuthTries 3" >> /etc/ssh/sshd_config
+    echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
 }
 
 # installing specified packages
@@ -35,3 +39,53 @@ cron_job_setup(){
 }
 
 # ---
+
+if ! [ $primary_user ]
+then
+    echo "Nie znaleziono innych użytkowników. W systemie musi być inny użytkownik żebyś nie stracił dostępu do serwera."
+    echo "Możesz to zrobić używając skryptu 'chce_usera.sh'"
+    exit
+fi
+
+echo "----------------------------------------------------------------------------------"
+echo "[!] Domyślny użytkownik to '$primary_user'. Zostanie on dodany do grupy 'ssh_group'."
+echo "----------------------------------------------------------------------------------"
+echo "[!] W kolejnym kroku zostaną pobrane różne pakiety. Podczas jednego z nich wyświetli się zapytanie o konfigurację, wybierz opcję 'brak konfiguracji'."
+read -p "Rozumiem (Enter)"
+echo "[*] Instalowanie potrzebnych pakietów..."
+package_installation
+
+echo "[*] Zabezpieczanie ssh..."
+securing_ssh
+
+echo "[*] Tworzenie grupy 'ssh_group'..."
+addgroup ssh_group
+
+echo "[*] Dodawanie użytkownika do grupy 'ssh_group'..."
+usermod -aG ssh_group $primary_user
+usermod -aG sudo $primary_user # making sure the user has access to sudo
+
+echo "[*] Kopiowanie kluczy ssh"
+
+if ! [ -f "/root/.ssh/authorized_keys" ]
+then
+    echo "[!] Dodaj swój klucz ssh do '/home/$primary_user/.ssh/authorized_keys'"
+    read -p "Rozumiem (Enter)"
+    exit
+else
+    if ! [ -d "/home/$primary_user/.ssh/" ] # looking for ~/.ssh directory
+    then
+        mkdir /home/$primary_user/.ssh/
+    fi
+
+    cp /root/.ssh/authorized_keys /home/$primary_user/.ssh/authorized_keys
+    chown $primary_user:$primary_user /home/$primary_user/.ssh/*
+fi
+
+echo "[*] Restartowanie usługi 'ssh'"
+service ssh restart
+
+echo "[*] Dodawanie zadania 'cron'"
+cron_job_setup
+
+echo "[!] Od teraz logowanie przez ssh jest dostępne TYLKO dla użytkowników z grupy 'ssh_group'."
