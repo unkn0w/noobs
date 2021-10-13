@@ -24,7 +24,7 @@ securing_ssh(){
 # installing specified packages
 package_installation(){
     sudo apt update
-    sudo apt install lynis debsums unattended-upgrades apt-show-versions
+    sudo apt install -y lynis debsums unattended-upgrades apt-show-versions
     sudo apt install -y logwatch
 }
 
