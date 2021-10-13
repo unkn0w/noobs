@@ -21,7 +21,17 @@ securing_ssh(){
     echo "MaxAuthTries 3" >> /etc/ssh/sshd_config
 }
 
+# installing specified packages
 package_installation(){
     sudo apt update
     sudo apt install lynis debsums unattended-upgrades apt-show-versions
+    sudo apt install -y logwatch
 }
+
+# setting up cron
+cron_job_setup(){
+    echo -e "#!/bin/bash\n#Check if removed-but-not-purged\ntest -x /usr/share/logwatch/scripts/logwatch.pl || exit 0\n#execute\n/usr/sbin/logwatch | pusher" > /etc/cron.daily/00logwatch
+    chmod +x /etc/cron.daily/00logwatch
+}
+
+# ---
