@@ -58,14 +58,6 @@ echo " - wyłącza możliwość używania GUI przez ssh(X11Forwarding)"
 echo " - włącza uwierzytelnienie kluczem publicznym"
 echo "----------------------------------------------------------------------------------"
 
-# looking for ssh keys
-if [ -s /root/.ssh/authorized_keys ]
-then
-    echo "[!] Nie znaleziono klucza/kluczy ssh w '/root/.ssh/authorized_keys'."
-    echo "Umieść klucz/klucze w tym pliku i uruchom ponownie skrypt."
-    exit
-fi
-
 echo "[!] W kolejnym kroku zostaną pobrane różne pakiety. Podczas jednego z nich wyświetli się zapytanie o konfigurację, wybierz opcję 'brak konfiguracji'."
 read -p "Rozumiem (Enter)"
 echo "[*] Instalowanie potrzebnych pakietów..."
@@ -83,9 +75,10 @@ usermod -aG sudo $primary_user # making sure the user has access to sudo
 
 echo "[*] Kopiowanie kluczy ssh"
 
-if ! [ -f "/root/.ssh/authorized_keys" ]
+#checking ssh keys
+if ! [ -f "/root/.ssh/authorized_keys" ] || ! [ -s "/root/.ssh/authorized_keys" ]
 then
-    echo "[!] Dodaj swój klucz ssh do '/home/$primary_user/.ssh/authorized_keys'"
+    echo "[!] Dodaj swój klucz ssh do '/home/$primary_user/.ssh/authorized_keys' i uruchom ponownie skrypt"
     read -p "Rozumiem (Enter)"
     exit
 else
