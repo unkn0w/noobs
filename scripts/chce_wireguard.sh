@@ -5,6 +5,11 @@
 apt update
 apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
 
+if [ ! -e /dev/net/tun ]; then
+    echo "Aby Wireguard działał poprawnie, musisz aktywować TUN/TAP na swoim serwerze";
+    exit
+fi
+
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-go /tmp/wireguard-go
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
