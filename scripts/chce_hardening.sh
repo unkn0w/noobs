@@ -40,7 +40,7 @@ cron_job_setup(){
 
 # ---
 
-if ! [ $primary_user ]
+if ! [ "$primary_user" ]
 then
     echo "[!] Nie znaleziono innych użytkowników. W systemie musi być inny użytkownik żebyś nie stracił dostępu do serwera."
     echo "Możesz to zrobić używając skryptu 'chce_usera.sh'"
@@ -80,8 +80,8 @@ echo "[*] Tworzenie grupy 'ssh_group'..."
 sudo addgroup ssh_group
 
 echo "[*] Dodawanie użytkownika do grupy 'ssh_group'..."
-gpasswd -a $primary_user ssh_group # making sure the user has access to sudo
-gpasswd -a $primary_user sudo # making sure the user has access to sudo
+gpasswd -a "$primary_user" ssh_group # making sure the user has access to sudo
+gpasswd -a "$primary_user" sudo # making sure the user has access to sudo
 
 echo "[*] Kopiowanie kluczy ssh"
 
@@ -94,11 +94,11 @@ then
 else
     if ! [ -d "/home/$primary_user/.ssh/" ] # looking for ~/.ssh directory
     then
-        mkdir /home/$primary_user/.ssh/
+        mkdir /home/"$primary_user"/.ssh/
     fi
 
-    cp /root/.ssh/authorized_keys /home/$primary_user/.ssh/authorized_keys
-    chown $primary_user:$primary_user /home/$primary_user/.ssh/*
+    cp /root/.ssh/authorized_keys /home/"$primary_user"/.ssh/authorized_keys
+    chown "$primary_user":"$primary_user" /home/$primary_user/.ssh/*
 fi
 
 echo "[*] Restartowanie usługi 'ssh'"
