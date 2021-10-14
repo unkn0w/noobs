@@ -8,7 +8,7 @@ then
     exit
 fi
 
-primary_user="$(sudo getent passwd | grep /bin/bash | awk -F: '{print $1}' | grep -v root | head -1)"
+primary_user="$(ls /home/ | head -1)"
 
 # ssh securing
 securing_ssh(){
@@ -19,7 +19,7 @@ securing_ssh(){
     echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
     echo "AllowGroups ssh_group" >> /etc/ssh/sshd_config
     echo "X11Forwarding no" >> /etc/ssh/sshd_config
-    echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+    echo "PermitRootLogin without-password" >> /etc/ssh/sshd_config
     echo "MaxAuthTries 3" >> /etc/ssh/sshd_config
     echo "ChallengeResponseAuthentication no" >> /etc/ssh/sshd_config
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
@@ -34,7 +34,7 @@ package_installation(){
 
 # setting up cron
 cron_job_setup(){
-    echo -e "#!/bin/bash\n#Check if removed-but-not-purged\ntest -x /usr/share/logwatch/scripts/logwatch.pl || exit 0\n#execute\n/usr/sbin/logwatch | pusher" > /etc/cron.daily/00logwatch
+    echo -e "#!/bin/bash\n#Check if removed-but-not-purged\ntest -x /usr/share/logwatch/scripts/logwatch.pl || exit 0\n#execute\n/usr/sbin/logwatch --detail high" > /etc/cron.daily/00logwatch
     chmod +x /etc/cron.daily/00logwatch
 }
 
@@ -42,7 +42,7 @@ cron_job_setup(){
 
 if ! [ $primary_user ]
 then
-    echo "Nie znaleziono innych użytkowników. W systemie musi być inny użytkownik żebyś nie stracił dostępu do serwera."
+    echo "[!] Nie znaleziono innych użytkowników. W systemie musi być inny użytkownik żebyś nie stracił dostępu do serwera."
     echo "Możesz to zrobić używając skryptu 'chce_usera.sh'"
     exit
 fi
@@ -52,7 +52,7 @@ echo "[!] Domyślny użytkownik to '$primary_user'. Zostanie on dodany do grupy 
 echo "----------------------------------------------------------------------------------"
 echo "[!] Uwaga! Ten skrypt: "
 echo " - wyłącza logowania hasłem", 
-echo " - wyłącza możliwość logowania na konto root(przez ssh)"
+echo " - wyłącza możliwość logowania HASŁEM na konto root(przez ssh)"
 echo " - ustawia maksymalną ilośc prób uwierzytelnienia na 3"
 echo " - wyłącza możliwość używania GUI przez ssh(X11Forwarding)"
 echo " - włącza uwierzytelnienie kluczem publicznym"
@@ -66,12 +66,22 @@ package_installation
 echo "[*] Zabezpieczanie ssh..."
 securing_ssh
 
+# verifying config
+if [ "$(sshd -t)" ]
+then
+    echo "-----------------------------------------------------------"
+    echo "[!] Powyższe błędy występują w pliku '/etc/ssh/sshd_config'"
+    echo "-----------------------------------------------------------"
+
+    exit
+fi
+
 echo "[*] Tworzenie grupy 'ssh_group'..."
-addgroup ssh_group
+sudo addgroup ssh_group
 
 echo "[*] Dodawanie użytkownika do grupy 'ssh_group'..."
-usermod -aG ssh_group $primary_user
-usermod -aG sudo $primary_user # making sure the user has access to sudo
+gpasswd -a $primary_user ssh_group # making sure the user has access to sudo
+gpasswd -a $primary_user sudo # making sure the user has access to sudo
 
 echo "[*] Kopiowanie kluczy ssh"
 
