@@ -26,10 +26,13 @@ fi
 }
 
 _password_get(){
+        username_arg=$1
 	while true; do
-		# ask for password
-		read -s -p "Podaj hasło (zostaw puste aby wygenerować): " password
-		echo
+                if [ "$username_arg" -eq "0" ]; then
+		        # ask for password
+		        read -s -p "Podaj hasło (zostaw puste aby wygenerować): " password
+		        echo
+		fi
 
 		# check if password is blank
 		if [ -z "$password" ]; then
@@ -53,13 +56,15 @@ _password_get(){
 
 if ! [ -z "$1" ]; then
     username=$1
+    username_arg=1
 else
     read -p "Podaj nazwę użytkownika: " username
+    username_arg=0
 fi
 
 _check_if_user_blank $username
 _check_if_user_exits $username
-_password_get
+_password_get $username_arg
 
 
 # stworz nowego uzytkownika
