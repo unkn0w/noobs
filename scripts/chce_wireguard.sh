@@ -6,7 +6,7 @@ apt update
 apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
 
 if [ ! -e /dev/net/tun ]; then
-    echo "Aby WIreguard działał poprawnie, musisz aktywować TUN/TAP na swoim serwerze";
+    echo "Aby Wireguard działał poprawnie, musisz aktywować TUN/TAP na swoim serwerze";
     exit
 fi
 
