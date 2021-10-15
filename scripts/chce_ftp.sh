@@ -22,7 +22,7 @@ sudo apt update
 sudo apt install -y vsftpd
 sudo sed -i 's/#write_enable=YES/write_enable=YES/g' /etc/vsftpd.conf
 
-sudo echo "
+echo "
 listen_port=${listen_port}
 " >> /etc/vsftpd.conf
 
