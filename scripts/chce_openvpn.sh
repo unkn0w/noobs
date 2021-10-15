@@ -66,3 +66,6 @@ export CUSTOMIZE_ENC=n
 export PASS=1
 
 ./openvpn-install.sh
+
+mv openvpn-install.sh ~/openvpn-install.sh
+echo "In order to add new clients, run ~/openvpn-install.sh"
