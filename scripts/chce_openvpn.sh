@@ -45,7 +45,23 @@ if [ -z "$host" ]; then
 fi
 
 
-echo "Using hostname $host and port $port"
+echo "Using hostname $host and port $port for configuration."
 
-#apt update
-#apt install
+echo "Download configuration script and run it."
+curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
+chmod +x openvpn-install.sh
+
+export AUTO_INSTALL=y
+export APPROVE_INSTALL=y
+export APPROVE_IP=y
+export ENDPOINT="$host"
+export IPV6_SUPPORT=n
+export PORT_CHOICE=2
+export PORT=$port
+export PROTOCOL_CHOICE=1
+export DNS=1
+export COMPRESSION_ENABLED=n
+export CUSTOMIZE_ENC=n
+export PASS=1
+
+./openvpn-install.sh
