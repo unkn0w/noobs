@@ -2,6 +2,11 @@
 # FTP installation script
 # Authors: Mariusz 'maniek205' Kowalski
 
+err() {
+    echo -e "\e[0;31m[!] \e[1;31m$1\e[0;0m";
+    exit 1;
+}
+
 [ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
 sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
 
