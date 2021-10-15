@@ -1,7 +1,8 @@
 #!/bin/bash
 # Create OpenVPN server
 # Autor: Radoslaw Karasinski
-
+# Usage: you can pass --port and/or --host variables to script, otherwise
+# defaults will be choosen.
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
