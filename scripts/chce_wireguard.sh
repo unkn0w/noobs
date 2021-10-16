@@ -2,8 +2,14 @@
 # Autor skryptu: Andrzej Szczepaniak
 # Poprawki: Jakub 'unknow' Mrugalski
 
+cp /etc/resolv.conf /etc/resolv.back
+
 apt update
 apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
+
+systemctl stop resolvconf
+systemctl disable resolvconf
+mv /etc/resolv.back /etc/resolv.conf
 
 if [ ! -e /dev/net/tun ]; then
     echo "Aby Wireguard działał poprawnie, musisz aktywować TUN/TAP na swoim serwerze";
@@ -21,12 +27,14 @@ mv /tmp/go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 
+ln -s /usr/local/go/bin/go /usr/bin/
+
 cd /tmp/wireguard-tools/src/ || exit
 make
 make install
 
-cd /tmp/wireguard-go/devices/
-rm /tmp/wireguard-go/devices/queueconstants_default.go && wget https://fx.vc-mp.eu/shared/queueconstants_default.go
+cd /tmp/wireguard-go/device/
+rm /tmp/wireguard-go/device/queueconstants_default.go && wget https://fx.vc-mp.eu/shared/queueconstants_default.go
 cd /tmp/wireguard-go && make
 cp wireguard-go /usr/local/bin && ln -s /usr/local/go/bin/go /usr/bin/
 
