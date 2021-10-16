@@ -36,7 +36,7 @@ make install
 cd /tmp/wireguard-go/device/
 rm /tmp/wireguard-go/device/queueconstants_default.go && wget https://fx.vc-mp.eu/shared/queueconstants_default.go
 cd /tmp/wireguard-go && make
-cp wireguard-go /usr/local/bin && ln -s /usr/local/go/bin/go /usr/bin/
+cp /tmp/wireguard-go/wireguard-go /usr/bin
 
 wg genkey > /etc/wireguard/privatekey
 wg genkey > /etc/wireguard/client-privatekey
