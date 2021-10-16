@@ -10,7 +10,7 @@ if [ ! -e /dev/net/tun ]; then
     exit
 fi
 
-git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-go /tmp/wireguard-go
+cd /tmp/ && wget https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20191012.tar.xz && tar -xvf wireguard-go-0.0.20191012.tar.xz && rm wireguard-go-0.0.20191012.tar.xz && mv wireguard-go-0.0.20191012 wireguard-go
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
 
@@ -20,13 +20,15 @@ cd /tmp/ && tar -zxvf go1.16.4.linux-amd64.tar.gz
 mv /tmp/go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-cd /tmp/wireguard-go || exit
-make
-make install
 
 cd /tmp/wireguard-tools/src/ || exit
 make
 make install
+
+cd /tmp/wireguard-go/devices/
+rm /tmp/wireguard-go/devices/queueconstants_default.go && wget https://fx.vc-mp.eu/shared/queueconstants_default.go
+cd /tmp/wireguard-go && make
+cp wireguard-go /usr/local/bin && ln -s /usr/local/go/bin/go /usr/bin/
 
 wg genkey > /etc/wireguard/privatekey
 wg genkey > /etc/wireguard/client-privatekey
