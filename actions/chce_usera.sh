@@ -91,4 +91,15 @@ sudo chown -R $username:$username $ssh_dir
 # skopiuj klucze obecnego uzytkownika do nowo stworzoneg
 cat ~/.ssh/authorized_keys 2>&1 | sudo tee -a $ssh_dir/authorized_keys >/dev/null
 
+# zmiana powloki z /bin/sh na /bin/bash (pokazuje user@host:/ przed znakiem zachety)
+sudo chsh -s /bin/bash $username
+
+touch /home/$username/.sudo_as_admin_successful
+
+# tworzy symlink do noobs w katalogu nowego uzytkownika
+if [ -d /opt/noobs ]; then
+   ln -s /opt/noobs /home/$username/noobs
+   sudo chown -R $username:$username /home/$username/noobs
+fi
+
 echo "Pomyślnie stworzono użytkownia ${username}."
