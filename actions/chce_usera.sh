@@ -70,7 +70,7 @@ _password_get $username_arg
 
 
 # stworz nowego uzytkownika
-sudo useradd -m -p $(openssl passwd -1 $password) -s "/bin/bash/" "$username" && echo "Uzytkownik $username zostal stworzony"
+sudo useradd -m -p $(openssl passwd -1 $password) -s /bin/bash "$username" && echo "Uzytkownik $username zostal stworzony"
 
 # dodaj nowego uzytkownika do sudo
 sudo usermod -aG sudo $username
