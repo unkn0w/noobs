@@ -1,13 +1,22 @@
 # NOOBS - zestaw skryptów dla początkujących
 
-Skrypty przeznaczone są dla uzytkowników usługi MIKR.US, pracujących w systemie Ubuntu 20.04, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa
+Skrypty przeznaczone są dla uzytkowników usługi [MIKR.US](https://mikr.us), pracujących w systemie Ubuntu 20.04, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa
 
 ## Instalacja
 
-Najnowszą wersję skryptów pobierzesz poleceniem:
+Skrypty możesz zainstalować na dwa sposoby.
+
+➤  Metoda 'ręczna'
 
 ```bash
 git clone https://github.com/unkn0w/noobs /opt/noobs
+```
+
+➤ Metoda w pełni automatyczna (dla początkujących)
+
+
+```bash
+curl -s https://noobs.mikr.us | bash
 ```
 
 ## Jak tego używać?
@@ -27,6 +36,8 @@ Kilka zasad:
 4) Pliki tymczasowe skrypt powinien wrzucać do /tmp/
 5) Podpisz się w komentarzu na początku skryptu, aby każdy wiedział komu ma być wdzięczny :)
 6) Nie zaszywaj w skryptach na stałe nazw maszyn, adresów IP serwera itp.
+7) Pamiętaj, aby dodawany skrypt był wykonywalny (chmod +x)
+8) Stawianie nowych usług wrzucaj do katalogu **scripts/**, a wykonywanie akcji systemowych do **actions/**
 
 ## Licencja
 [MIT](https://choosealicense.com/licenses/mit/)
