@@ -1,10 +1,6 @@
 #!/bin/bash
 # Script chce_domoticz.sh created by Andrzej "Ferex" Szczepaniak
-#Add two new TCP ports in panel and put this ports to this script
-#to "Variables" section.
-#===== Variables =====
-port1=
-port2=
+# Script syntax: ./chce_domoticz.sh port_http port_https
 #===== DONT' EDIT THIS SECTION!! =====
 service_code=$(cat <<EOF
 [Unit]
@@ -12,7 +8,7 @@ Description=Domoticz Home Automation
 After=network.target
 
 [Service]
-ExecStart=/opt/domoticz/domoticz -daemon -www $port1 -sslwww $port2
+ExecStart=/opt/domoticz/domoticz -daemon -www $1 -sslwww $2
 KillMode=process
 Restart=on-failure
 
@@ -21,10 +17,10 @@ WantedBy=multi-user.target
 EOF
 )
 #===== Checker =====
-if [ -z "$port1" ]; then
-echo "Wstaw porty TCP (w tym skrypcie w Variables) na których ma działać domoticz"
-elif [ -z "$port2" ]; then
-echo "Wstaw porty TCP (w tym skrypcie w Variables) na których ma działać domoticz"
+if [ -z "$1" ]; then
+echo "Poprawna składnia: ./chce_domoticz.sh port_http port_https"
+elif [ -z "$2" ]; then
+echo "Poprawna składnia: ./chce_domoticz.sh port_http port_https"
 else
 #===== Script =====
 mkdir /opt/domoticz
