@@ -4,7 +4,7 @@
 
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
 if [[ $EUID -ne 0 ]]; then
-   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_dockera.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_fail2ban.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
    exit 1
 fi
 
