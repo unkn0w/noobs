@@ -25,7 +25,7 @@ _check_if_user_blank() {
         echo "Nie podałeś nazwy użytkownia!"
         exit 1
 fi
-{
+}
 
 _password_get(){
         username_arg=$1
