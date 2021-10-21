@@ -15,4 +15,4 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/plug
 sed -i 's|plugins=.*|plugins=(git zsh-z docker docker-compose sudo zsh-syntax-highlighting ufw ubuntu screen)|' ~/.zshrc
 
 # ustawienie ZSH jako domyślnego shella dla aktualnego użytkownika
-chsh -s /bin/zsh $USER
+chsh -s /bin/zsh "$USER"
