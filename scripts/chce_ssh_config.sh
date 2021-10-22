@@ -6,6 +6,7 @@
 #   --user USERNAME (i.e. 'root')
 #   --port PORT_NUMBER (to configure connection for non mikr.us host)
 #   --host HOSTNAME (to configure connection for non mikr.us host)
+#   username@test.com (without param in front)
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
@@ -20,6 +21,16 @@ while [ $# -gt 0 ]; do
     fi
   shift
 done
+
+if [[ -n "$mikrus" && -n "$possible_ssh_param" ]]; then
+    echo "ERROR: --mikrus and ssh-like argument ($possible_ssh_param) were given in the same time!"
+    exit 1
+fi
+
+if [[ -n "$host" && -n "$possible_ssh_param" ]]; then
+    echo "ERROR: --host and ssh-like argument ($possible_ssh_param) were given in the same time!"
+    exit 2
+fi
 
 port="${port:-22}"
 user="${user:-root}"
