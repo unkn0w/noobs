@@ -26,7 +26,7 @@ user="${user:-root}"
 
 if [ -n "$mikrus" ]; then
     if ! [[ "$mikrus" =~ [a-q][0-9]{3}$ ]]; then
-        echo "--mikrus parameter is not valid!"
+        echo "ERROR: --mikrus parameter is not valid!"
         exit 1
     fi
 
@@ -43,7 +43,7 @@ if [ -n "$mikrus" ]; then
     hosts["q"]="mini01"
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
-        echo "Server hostname not known for key $key"
+        echo "ERROR: Server hostname not known for key $key"
         exit 1
     fi
     host="$host.mikr.us"
@@ -57,7 +57,7 @@ fi
 
 
 if [ -z "$host" ]; then
-    echo "Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com"
+    echo "ERROR: Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com"
     exit 2
 fi
 
@@ -69,4 +69,25 @@ if [ -n "$decision" ]; then
     exit 0
 fi
 
-echo "continue"
+
+ssh_key_file="$HOME/.ssh/$user-$host-port-$port-rsa"
+ssh-keygen -t rsa -b 4096 -f "$ssh_key_file" -C "$user@$host:$port"
+
+header="$user-$host-$port"
+if ! grep -q "$header" ~/.ssh/config ; then
+    echo "" >> ~/.ssh/config
+    echo "Host $header" >> ~/.ssh/config
+    echo "  HostName $host" >> ~/.ssh/config
+    echo "  User $user" >> ~/.ssh/config
+    echo "  Port $port" >> ~/.ssh/config
+    echo "  IdentityFile $ssh_key_file" >> ~/.ssh/config
+else
+    echo "ERROR: '$header' already defined in ~/.ssh/config!"
+    exit 3
+fi
+
+ssh-copy-id -i $ssh_key_file $header
+
+echo ""
+echo "ssh was properly configured!"
+echo "Remmber, that you can use tab to use autofill to type connection string faster - type few first chars of Host (i.e. 'ssh ${header:0:8}', or even less) , then press tab."
