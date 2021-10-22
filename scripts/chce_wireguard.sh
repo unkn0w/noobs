@@ -5,7 +5,7 @@
 cp /etc/resolv.conf /etc/resolv.back
 
 apt update
-apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
+apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf git iptables
 
 systemctl stop resolvconf
 systemctl disable resolvconf
