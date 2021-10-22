@@ -74,6 +74,7 @@ ssh_key_file="$HOME/.ssh/$user-$host-port-$port-rsa"
 ssh-keygen -t rsa -b 4096 -f "$ssh_key_file" -C "$user@$host:$port"
 
 header="$user-$host-$port"
+touch ~/.ssh/config # just in case if file was not created in past
 if ! grep -q "$header" ~/.ssh/config ; then
     echo "" >> ~/.ssh/config
     echo "Host $header" >> ~/.ssh/config
