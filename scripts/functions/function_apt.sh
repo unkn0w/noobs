@@ -10,14 +10,18 @@ log="/var/log/noobs-${currentDate}.log"
 function apt_install_software () {
     # [PL] Funkcja ta sprawdza czy jest zainstalowany pakiet. W przypadku braku pakiety przystepuje do instalacji.
 	  # [ENG] This function checks if the package is installed. In the absence of packages, it is included in the installation.
+    
+    # Pętla do instalacji wskazanych pakietów / nazwa - używamy apt_install_software <nazwa_pakietu> <druga_nazwa_pakietu> [...]
     for software in "$@";
     do
+      # Sprawdzamy czy pakiet już nie jest zainstalowany - nie wykonany update jeżeli już mamy.
       echo "Rozpoczecie instalacji pakietu - sprawdzam czy jest na liście, jezeli go niema zostanie ziosnatlowany pakiet: ${software}"
       dpkg -s ${software} &> /dev/null
-
+       
 	    if [ $? -eq 0 ]; then
     	  echo "${currentDate} ${currentTime}  |  Pakiet ${software} jest już zainstalowany!" |& tee -a ${log}
 	    else
+        # Brak pakietu instaluje.
     	  echo "${currentDate} ${currentTime}  |  Pakiet ${software} nie jest zainstalowany, przystępuje do instalacji!" |& tee -a ${log}
 		    sudo apt-get install -y ${software} |& tee -a ${log}
         if [ $? -eq 0 ]; then
@@ -30,6 +34,7 @@ function apt_install_software () {
 }
 
 function apt_update() {
+  # Logowanie aktualizacji pakietów.
   echo "${currentTime}  |  Aktualizacja listy pakietów!" |& tee -a ${log}
   apt update |& tee -a ${log}
   if [ $? -eq 0 ]; then
@@ -42,6 +47,7 @@ function apt_update() {
 function apt_add_repository() {
   for repository in "$@";
     do
+      # Dodawanie dodatkowych repozytoroiów - nazwy podawać w "<nazwa>" i oddzielone spacją jezeli chcemy kilka.
       echo "Dodanie repozytorium ${repository}"
 		  add-apt-repository --yes --update ${repository} |& tee -a ${log}
       if [ $? -eq 0 ]; then

@@ -5,7 +5,7 @@
 . ./functions/function_apt.sh
 
 if [[ $EUID -ne 0 ]]; then
-   echo "Ten skrypt musi być uruchamiany jako root - użyj np sudo ./$0" 
+   echo "Ten skrypt musi być uruchamiany jako root - użyj np sudo $0" 
    exit 1
 fi
 
