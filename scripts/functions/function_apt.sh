@@ -23,7 +23,7 @@ function apt_install_software () {
 	    else
         # Brak pakietu instaluje.
     	  echo "${currentDate} ${currentTime}  |  Pakiet ${software} nie jest zainstalowany, przystępuje do instalacji!" |& tee -a ${log}
-		    sudo apt-get install -y ${software} |& tee -a ${log}
+		    apt-get install -y ${software} |& tee -a ${log}
         if [ $? -eq 0 ]; then
           echo "${currentDate} ${currentTime}  |  Pakiet ${software} zinstalowany." |& tee -a ${log}
         else
@@ -36,7 +36,7 @@ function apt_install_software () {
 function apt_update() {
   # Logowanie aktualizacji pakietów.
   echo "${currentTime}  |  Aktualizacja listy pakietów!" |& tee -a ${log}
-  apt update |& tee -a ${log}
+  apt-get update |& tee -a ${log}
   if [ $? -eq 0 ]; then
     echo "${currentDate} ${currentTime}  |  Aktualizacja listy pakietów wykonana prawidłowo." |& tee -a ${log}
   else

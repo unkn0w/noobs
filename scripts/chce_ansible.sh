@@ -20,3 +20,6 @@ apt_add_repository "ppa:ansible/ansible"
 
 # Instalacja pakietu ansible
 apt_install_software ansible
+
+# Wydruk w CLI wersji naszego ansible
+/usr/bin/anisble --version
