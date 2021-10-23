@@ -15,7 +15,7 @@ function apt_install_software () {
     for software in "$@";
     do
       # Sprawdzamy czy pakiet już nie jest zainstalowany - nie wykonany update jeżeli już mamy.
-      echo "Rozpoczecie instalacji pakietu - sprawdzam czy jest na liście, jezeli go niema zostanie ziosnatlowany pakiet: ${software}"
+      echo "${currentDate} ${currentTime}  |  Rozpoczecie instalacji pakietu - sprawdzam czy jest na liście, jezeli go niema zostanie ziosnatlowany pakiet: ${software}"
       dpkg -s ${software} &> /dev/null
        
 	    if [ $? -eq 0 ]; then
@@ -35,7 +35,7 @@ function apt_install_software () {
 
 function apt_update() {
   # Logowanie aktualizacji pakietów.
-  echo "${currentTime}  |  Aktualizacja listy pakietów!" |& tee -a ${log}
+  echo "${currentDate} ${currentTime}  |  Aktualizacja listy pakietów!" |& tee -a ${log}
   apt-get update |& tee -a ${log}
   if [ $? -eq 0 ]; then
     echo "${currentDate} ${currentTime}  |  Aktualizacja listy pakietów wykonana prawidłowo." |& tee -a ${log}
@@ -48,7 +48,7 @@ function apt_add_repository() {
   for repository in "$@";
     do
       # Dodawanie dodatkowych repozytoroiów - nazwy podawać w "<nazwa>" i oddzielone spacją jezeli chcemy kilka.
-      echo "Dodanie repozytorium ${repository}"
+      echo "${currentDate} ${currentTime}  |  Dodanie repozytorium ${repository}"
 		  add-apt-repository --yes --update ${repository} |& tee -a ${log}
       if [ $? -eq 0 ]; then
         echo "${currentDate} ${currentTime}  |  Repozytorium ${repository} dodane." |& tee -a ${log}
