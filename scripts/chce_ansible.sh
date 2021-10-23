@@ -16,9 +16,7 @@ apt_update
 apt_install_software software-properties-common
 
 # Dodanie repo ppa:ansible/ansible
-echo "Dodanie repo ppa:ansible/ansible"
 apt_add_repository "ppa:ansible/ansible"
 
 # Instalacja pakietu ansible
-echo "Instalacja pakietu ansible"
 apt_install_software ansible
