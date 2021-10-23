@@ -38,7 +38,7 @@ user="${user:-root}"
 if [ -n "$mikrus" ]; then
     if ! [[ "$mikrus" =~ [a-q][0-9]{3}$ ]]; then
         echo "ERROR: --mikrus parameter is not valid!"
-        exit 1
+        exit 3
     fi
 
     port="$(( 10000 + $(echo $mikrus | grep -o '[0-9]\+') ))"
@@ -54,8 +54,8 @@ if [ -n "$mikrus" ]; then
     hosts["q"]="mini01"
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
-        echo "ERROR: Server hostname not known for key $key"
-        exit 1
+        echo "ERROR: Server hostname not known for key '$key'."
+        exit 4
     fi
     host="$host.mikr.us"
 fi
@@ -68,15 +68,15 @@ fi
 
 
 if [ -z "$host" ]; then
-    echo "ERROR: Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com"
-    exit 2
+    echo "ERROR: Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com)."
+    exit 5
 fi
 
 echo "Following params will be used to generate ssh config: user:'$user', host:'$host', port:'$port'"
 read -n 1 -s  -p "Press enter (or space) to continue or any other key to cancel." decision
 echo ""
 if [ -n "$decision" ]; then
-    echo "No further changes"
+    echo "No further changes."
     exit 0
 fi
 
@@ -95,7 +95,7 @@ if ! grep -q "$header" ~/.ssh/config ; then
     echo "  IdentityFile $ssh_key_file" >> ~/.ssh/config
 else
     echo "ERROR: '$header' already defined in ~/.ssh/config!"
-    exit 3
+    exit 6
 fi
 
 ssh-copy-id -i $ssh_key_file $header
