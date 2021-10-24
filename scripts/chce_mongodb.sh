@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Autor: Kacper Adamczak
-# Version: 1.0
+# Authors: Kacper Adamczak, Janszczyrek
+# Version: 1.1
 #
 
 
@@ -18,4 +18,20 @@ sudo systemctl start mongod && { printf "\nPrawidłowo uruchomiono MongoDB\n";} 
 
 printf "\nMongoDB jest poprawnie zainstalowana i uruchomiona\n"
 
-#sudo npm install -g mongo-express
+
+if ! command -v npm &> /dev/null
+then
+    printf "\nAby zainstalowac mongo-express potrzebujesz npm\n"
+    exit
+else
+    printf "\nInstaluje mongo-express...\n"
+    sudo npm install -g mongo-express
+    sudo cp /usr/lib/node_modules/mongo-express/config.default.js /usr/lib/node_modules/mongo-express/config.js
+
+    ME_PASS=$(sudo < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c16)
+    sudo sed -i "s/password: getFileEnv(basicAuthPassword) || 'pass',/password: getFileEnv(basicAuthPassword) || '$ME_PASS',/g" /usr/lib/node_modules/mongo-express/config.js
+    printf "\nHaslo dla admina mongo-express: $ME_PASS\n"
+
+    printf "\nAby uruchomic mongo-express wpisz 'mongo-express --url mongodb://127.0.0.1:27017'\n"
+    exit
+fi
