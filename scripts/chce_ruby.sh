@@ -10,6 +10,11 @@ fi
 # Instalacja rbenv
 curl -fsSL https://github.com/rbenv/rbenv-installer/raw/master/bin/rbenv-installer | bash
 
+if [[ $? -ne 0 ]]; then
+    echo "Wystąpił błąd podczas instalacji rbenv."
+    exit 1
+fi
+
 # Konfiguracja rbenv
 if [ -n "$ZSH_VERSION" ]; then
     echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.zshrc
