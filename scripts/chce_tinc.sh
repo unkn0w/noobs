@@ -14,7 +14,7 @@ node_ip=10.0.0.1/32
 subnet=10.0.0.0/24
 
 apt update
-apt install tinc
+apt install tinc --yes
 
 mkdir -p /etc/tinc/$network_name/hosts
 
