@@ -8,6 +8,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Instalacja rbenv
+apt update
 apt install rbenv -y
 
 # Konfiguracja rbenv
