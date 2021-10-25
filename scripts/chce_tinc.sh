@@ -32,13 +32,13 @@ echo "Subnet = $node_ip" >> /etc/tinc/$network_name/hosts/$server_name
 tincd -n $network_name -K4096
 
 touch /etc/tinc/$network_name/tinc-up
-echo "#!/bin/sh" >>  >> /etc/tinc/$network_name/tinc-up
+echo "#!/bin/sh" >> /etc/tinc/$network_name/tinc-up
 echo "ip link set \$INTERFACE up" >> /etc/tinc/$network_name/tinc-up
 echo "ip addr add $node_ip dev \$INTERFACE" >> /etc/tinc/$network_name/tinc-up
 echo "ip route add $subnet dev \$INTERFACE" >> /etc/tinc/$network_name/tinc-up
 
 touch /etc/tinc/$network_name/tinc-down
-echo "#!/bin/sh" >>  >> /etc/tinc/$network_name/tinc-down
+echo "#!/bin/sh" >> /etc/tinc/$network_name/tinc-down
 echo "ip route del $subnet dev \$INTERFACE" >> /etc/tinc/$network_name/tinc-down
 echo "ip addr del $node_ip dev \$INTERFACE" >> /etc/tinc/$network_name/tinc-down
 echo "ip link set \$INTERFACE down" >> /etc/tinc/$network_name/tinc-down
