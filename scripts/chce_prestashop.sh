@@ -116,6 +116,7 @@ chmod -R 777 /home/shop/var
 
 echo -e "\e[1;32mDodanie konfiguracji Nginx \e[0m"
 unlink /etc/nginx/sites-enabled/default
+wget https://raw.githubusercontent.com/gizamichal/NGINX/main/prestashop
 mv prestashop /etc/nginx/sites-available/prestashop
 ln -s /etc/nginx/sites-available/prestashop /etc/nginx/sites-enabled/
 
