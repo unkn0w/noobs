@@ -8,12 +8,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Instalacja rbenv
-curl -fsSL https://github.com/rbenv/rbenv-installer/raw/master/bin/rbenv-installer | bash
-
-if [[ $? -ne 0 ]]; then
-    echo "Wystąpił błąd podczas instalacji rbenv."
-    exit 1
-fi
+apt install rbenv -y
 
 # Konfiguracja rbenv
 if [ -n "$ZSH_VERSION" ]; then
@@ -30,9 +25,18 @@ else
     echo "eval \"\$(rbenv init -)\""
 fi
 
-latest_ruby_version=`rbenv install -l | grep -v - | tail -1`
+export PATH="$HOME/.rbenv/bin:$PATH"
+rbenv init
+
+curl -fsSL https://github.com/rbenv/rbenv-installer/raw/main/bin/rbenv-doctor | bash
+
+if [[ $? -ne 0 ]]; then
+    echo "Wystąpił błąd podczas instalacji rbenv."
+    exit 1
+fi
 
 # Instalacja najnowszej wersji Ruby
+latest_ruby_version=`rbenv install -l | grep -v - | tail -1`
 rbenv install $latest_ruby_version
 
 # Ustawienie najnowszej wersji Ruby jako domyślnej
