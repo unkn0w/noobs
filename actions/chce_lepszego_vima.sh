@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -n "$(grep 'map <silent> <F5> :!python3 %<CR>' ~/.vimrc)" ]]; then
+    echo "Już zaktualizowano Twoją konfigurację vima"
+    exit 0
+fi
+
 echo 'syntax on
 set autoindent
 set background=dark
