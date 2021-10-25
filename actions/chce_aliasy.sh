@@ -1,28 +1,21 @@
 #!/bin/bash
 
-NOOBS_CALLER=$0
-# Jeśli wywołano bezpośrednio
-if [[ "${NOOBS_CALLER##*/}" == "chce_aliasy.sh" ]]; then
-    CURRENT_FILE_ABS_PATH="$(
-        cd "$(dirname "$0")"
-        pwd -P
-    )/$(basename "$0")"
-    echo -e "Dodaj poniższą linijkę do pliku .bashrc w Twoim katalogu domowym: \n. $CURRENT_FILE_ABS_PATH"
-    unset CURRENT_FILE_ABS_PATH
-    unset NOOBS_CALLER
+if [[ -n "$(grep 'policz' ~/.bash_aliases)" ]]; then
+    echo "Już dodano aliasy z tego pliku"
+    exit 0
 fi
-unset NOOBS_CALLER
 
-alias ..='cd ..'
-alias ...='cd ../../'
-alias ....='cd ../../../'
-alias .4='cd ../../../'
-alias .5='cd ../../../../'
+echo '
+alias ..="cd .."
+alias ...="cd ../../"
+alias ....="cd ../../../"
+alias .4="cd ../../../"
+alias .5="cd ../../../../"
 
-alias l='ls -CF'
-alias l.='ls -d .* --color=auto'
-alias la='ls -A'
-alias ll='ls -alF'
+alias l="ls -CF"
+alias l.="ls -d .* --color=auto"
+alias la="ls -A"
+alias ll="ls -alF"
 
 function doprzodu() {
     SPECIFIED_BRANCH=$1
@@ -40,12 +33,16 @@ function doprzodu() {
     fi
 }
 
-alias gs='git status'
+alias gs="git status"
 # Pokaż *całą* historię gita w przejrzystej formie
-alias gsall='git log --branches --remotes --tags --graph --oneline --decorate'
+alias gsall="git log --branches --remotes --tags --graph --oneline --decorate"
 
-alias ipe='curl ipinfo.io/ip; echo'
-alias ports='netstat -tulanp'
-alias policz='du -m --max-depth 1 | sort -n'
-alias jsonf='python -m json.tool'
-alias losuj='python -c '\''from os import urandom; from base64 import b64encode; print(b64encode(urandom(32)).decode("utf-8"))'\'''
+alias ipe="curl ipinfo.io/ip; echo"
+alias ports="netstat -tulanp"
+alias policz="du -m --max-depth 1 | sort -n"
+alias jsonf="python -m json.tool"
+alias losuj="python -c '\''from os import urandom; from base64 import b64encode; print(b64encode(urandom(32)).decode(\"utf-8\"))'\''"
+' >>~/.bash_aliases
+
+echo "Pomyślnie dodano aliasy!"
+echo "Upewnij się, że plik ~/.bash_aliases jest ładowany przy tworzeniu nowego basha."
