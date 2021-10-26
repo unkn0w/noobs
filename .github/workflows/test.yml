@@ -19,5 +19,5 @@ jobs:
       - name: Test modified and new scripts
         run: |
           chmod +x tests/execute_new_and_modified_scripts.sh
-          tests/execute_new_and_modified_scripts.sh
+          sudo tests/execute_new_and_modified_scripts.sh
           exit $?
