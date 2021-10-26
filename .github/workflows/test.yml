@@ -16,8 +16,5 @@ jobs:
         uses: actions/checkout@v1
       - name: Test modified and new scripts
         run: |
-          for item in `git diff --name-only main..HEAD | grep \.sh$` | grep ^scripts\/
-          do
-            chmod +x $item
-            bash $item
-          done
+          chmod +x tests/execute_new_and_modified_scripts.sh
+          tests/execute_new_and_modified_scripts.sh
