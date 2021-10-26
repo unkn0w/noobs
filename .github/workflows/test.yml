@@ -1,4 +1,4 @@
-name: Test changed scripts
+name: Test modified scripts
 
 on:
   push:
@@ -14,8 +14,10 @@ jobs:
     steps:
       - name: Checkout generator repository
         uses: actions/checkout@v1
-      - name: Test chce_LAMP.sh
-        # todo: run only on file changed
+      - name: Test modified and new scripts
         run: |
-          sudo ./scripts/chce_LAMP.sh
-          # sudo ./tests/chce_LAMP_test.sh
+          for item in `git diff --name-only main..HEAD | grep \.sh$` | grep ^scripts\/
+          do
+            chmod +x $item
+            bash $item
+          done
