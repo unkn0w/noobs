@@ -6,6 +6,7 @@
 command -v ruby >/dev/null 2>&1 || { echo >&2 "Aby zainstalować Jekyll musisz najpierw zainstalować Ruby. Możesz to zrobić przy użyciu skryptu chce_ruby.sh"; exit 1; }
 
 # Zainstaluj potrzebne zależności
+apt update
 apt install -y build-essential zlib1g-dev
 
 # Konfiguracja RubyGems
