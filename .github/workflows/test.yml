@@ -1,4 +1,4 @@
-name: Test changed scripts
+name: Test modified scripts
 
 on:
   push:
@@ -14,8 +14,10 @@ jobs:
     steps:
       - name: Checkout generator repository
         uses: actions/checkout@v1
-      - name: Test chce_LAMP.sh
-        # todo: run only on file changed
+        with:
+          fetch-depth: 0
+      - name: Test modified and new scripts
         run: |
-          sudo ./scripts/chce_LAMP.sh
-          # sudo ./tests/chce_LAMP_test.sh
+          chmod +x tests/execute_new_and_modified_scripts.sh
+          tests/execute_new_and_modified_scripts.sh
+          exit $?
