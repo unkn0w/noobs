@@ -16,9 +16,7 @@ sudo apt-get -y install postgresql
 # Zapisz do zmiennej ilosc pamieci ram w mb
 let ile_pamieci=$(free -t --mega | awk 'NR==2{print $2}')
 
-# TODO: automatyczne wykrywanie wersji
-config_path="/etc/postgresql/14/main/postgresql.conf"
-
+# Oblicz zalecana ilosc pamieci
 if [ $ile_pamieci -le 1000 ]
 then
     # ok.15%
@@ -29,8 +27,15 @@ else
 fi
 let effective_cache_size=$ile_pamieci/2
 
-# Zmiana ilosci dostepnej pamieci
-sudo sed -i "s/shared_buffers = 128MB/shared_buffers = $shared_buffers\MB/" $config_path
-sudo sed -i "s/#effective_cache_size = 4GB/effective_cache_size = $effective_cache_size\MB/" $config_path
+
+# Zastosuj dla kazdej zainstalowanej wersji Postgresa
+for postgres_dir in /etc/postgresql/*; do
+    config_path=$postgres_dir"/main/postgresql.conf"
+
+    # Zmiana ilosci dostepnej pamieci
+    sudo sed -i "s/shared_buffers = 128MB/shared_buffers = $shared_buffers\MB/" $config_path
+    sudo sed -i "s/#effective_cache_size = 4GB/effective_cache_size = $effective_cache_size\MB/" $config_path
+done
+
 
 sudo systemctl restart postgresql
