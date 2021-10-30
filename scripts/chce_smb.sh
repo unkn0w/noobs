@@ -46,9 +46,19 @@ echo "    comment = Samba dla $USER" >> /etc/samba/smb.conf
 echo "    path = $path" >> /etc/samba/smb.conf
 echo "    read only = no" >> /etc/samba/smb.conf 
 echo "    browsable = yes" >> /etc/samba/smb.conf 
-echo "    create mask = 0775" >> /etc/samba/smb.conf # https://discourse.ubuntu.com/t/install-and-configure-samba/13948/3
-echo "    directory mask = 0775" >> /etc/samba/smb.conf # https://discourse.ubuntu.com/t/install-and-configure-samba/13948/3
+echo "    create mask = 0775" >> /etc/samba/smb.conf
+echo "    directory mask = 0775" >> /etc/samba/smb.conf
 
 echo "[*] Restartowanie serwera samba i dodawanie go do autostartu"
 sudo service smbd restart
 sudo systemctl enable smbd
+
+echo "[!] Ustaw hasło dla użytkownika '$USER':"
+sudo smbpasswd -a $USER
+sudo smbpasswd -e $USER
+
+echo "[*] Zakończono skrypt."
+echo "----------------------"
+echo "W razie błędu podczas ustawiania hasła:"
+echo " - Uruchom 'sudo smbpasswd -a $USER'"
+echo " - Uruchom 'sudo smbpasswd -e $USER'"
