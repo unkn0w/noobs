@@ -28,9 +28,8 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: shellcheck
-        uses: reviewdog/action-shellcheck@v1
+        uses: ludeeus/action-shellcheck@1.1.0
         with:
-          reporter: github-pr-review
-          path: "scripts/"
-          pattern: "*.sh"
-          exclude: "./.git/*"
+          severity: error
+          scandir: './scripts'
+          format: tty

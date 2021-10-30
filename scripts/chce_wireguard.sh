@@ -2,15 +2,21 @@
 # Autor skryptu: Andrzej Szczepaniak
 # Poprawki: Jakub 'unknow' Mrugalski
 
+cp /etc/resolv.conf /etc/resolv.back
+
 apt update
-apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf
+apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools resolvconf git iptables
+
+systemctl stop resolvconf
+systemctl disable resolvconf
+mv /etc/resolv.back /etc/resolv.conf
 
 if [ ! -e /dev/net/tun ]; then
     echo "Aby Wireguard działał poprawnie, musisz aktywować TUN/TAP na swoim serwerze";
     exit
 fi
 
-git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-go /tmp/wireguard-go
+cd /tmp/ && wget https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20191012.tar.xz && tar -xvf wireguard-go-0.0.20191012.tar.xz && rm wireguard-go-0.0.20191012.tar.xz && mv wireguard-go-0.0.20191012 wireguard-go
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
 
@@ -20,13 +26,17 @@ cd /tmp/ && tar -zxvf go1.16.4.linux-amd64.tar.gz
 mv /tmp/go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
-cd /tmp/wireguard-go || exit
-make
-make install
+
+ln -s /usr/local/go/bin/go /usr/bin/
 
 cd /tmp/wireguard-tools/src/ || exit
 make
 make install
+
+cd /tmp/wireguard-go/device/
+rm /tmp/wireguard-go/device/queueconstants_default.go && wget https://fx.vc-mp.eu/shared/queueconstants_default.go
+cd /tmp/wireguard-go && make
+cp /tmp/wireguard-go/wireguard-go /usr/bin
 
 wg genkey > /etc/wireguard/privatekey
 wg genkey > /etc/wireguard/client-privatekey

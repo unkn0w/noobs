@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Tworzenie nowego uzytkownika, z dostepem do sudo i kopia authorized_keys
-# Autor: Radoslaw Karasinski, Grzegorz Ćwikliński, Szymon Hryszko
+
+# Autor: Radoslaw Karasinski, Grzegorz Ćwikliński, Szymon Hryszko, Artur Stefański
 
 # if no sudo, then exit
 if [ "$(id -u)" != "0" ]; then
 	echo "Musisz uruchomić ten skrypt jako root" 1>&2
 	echo "Spróbuj sudo $0"
 	exit 1
+
 fi
 
 _check_if_user_exits() {
@@ -22,11 +24,11 @@ _check_if_user_blank() {
     if [ -z "$1" ]; then
         echo "Nie podałeś nazwy użytkownia!"
         exit 1
-fi
+    fi
 }
 
 _password_get(){
-        username_arg=$1
+  username_arg=$1
 	while true; do
                 if [ "$username_arg" -eq "0" ]; then
 		        # ask for password
@@ -68,7 +70,7 @@ _password_get $username_arg
 
 
 # stworz nowego uzytkownika
-sudo useradd -m -p "$password" "$username"
+sudo useradd -m -p $(openssl passwd -1 $password) -s /bin/bash "$username" && echo "Uzytkownik $username zostal stworzony"
 
 # dodaj nowego uzytkownika do sudo
 sudo usermod -aG sudo $username
@@ -88,5 +90,11 @@ sudo chown -R $username:$username $ssh_dir
 
 # skopiuj klucze obecnego uzytkownika do nowo stworzoneg
 cat ~/.ssh/authorized_keys 2>&1 | sudo tee -a $ssh_dir/authorized_keys >/dev/null
+
+# tworzy symlink do noobs w katalogu nowego uzytkownika
+if [ -d /opt/noobs ]; then
+   ln -s /opt/noobs /home/$username/noobs
+   sudo chown -R $username:$username /home/$username/noobs
+fi
 
 echo "Pomyślnie stworzono użytkownia ${username}."

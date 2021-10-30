@@ -26,6 +26,22 @@ usage (){
     exit 3;
 }
 
+SERVICE_CODE=$(cat <<EOF
+[Unit]
+Description=code-server
+After=network.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/code-server
+Restart=always
+User=%i
+
+[Install]
+WantedBy=default.target
+EOF
+)
+
 # start -----------------------------
 [ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
 sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
@@ -71,9 +87,12 @@ status "tworzenie pliku konfiguracyjnego '$CONF_FILE'"
 echo -e "bind-addr: globalipv6:$port\nauth: password\npassword: $pass\ncert: false" | sudo tee "$CONF_FILE" >/dev/null
 
 # konfiguruj usluge
-status "konfigurowanie serwisu '$SERVICE_FILE'"
-sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/code-server --bind-addr [::]:$port|g" "$SERVICE_FILE"
-sudo systemctl daemon-reload
+if [ ! -f /usr/lib/systemd/system/code-server@.service ]; then
+    echo "$SERVICE_CODE" > /usr/lib/systemd/system/code-server@.service
+fi
+    status "konfigurowanie serwisu '$SERVICE_FILE'"
+    sudo sed -i "s|ExecStart=.*|ExecStart=/usr/bin/code-server --bind-addr [::]:$port|g" "$SERVICE_FILE"
+    sudo systemctl daemon-reload
 
 # sprzatanie
 status "czyszczenie instalatora"
