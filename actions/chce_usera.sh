@@ -39,7 +39,7 @@ _password_get(){
 		# check if password is blank
 		if [ -z "$password" ]; then
 			# generate password
-			password=$(head -c255 /dev/urandom | base64 | grep -Eoi '[a-z0-9]{12}' | head -n1)
+			password=$(apg -M SNCL -m32 | head -1)
 			echo "Twoje hasło to $password"
 			break
 		fi
