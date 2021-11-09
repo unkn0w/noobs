@@ -37,6 +37,7 @@ if [ -z "$host" ]; then
     hosts["g"]="srv09"
     hosts["h"]="srv10"
     hosts["q"]="mini01"
+    hosts["x"]="maluch"
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
         echo "Server hostname not known for key $key"
