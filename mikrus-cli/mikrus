@@ -49,7 +49,7 @@ if [ -f ~/.mikrus_cli.conf ]; then
     source ~/.mikrus_cli.conf
 
     if [ $srv == "unset" ] && [ $key == "unset" ]; then
-      printf "\nNiepoprawny plik konfiguracyjny\n Uruchom ./opt/noobs/actions/chce_mikrus_cli.sh\n"
+      printf "\nNiepoprawny plik konfiguracyjny\n Uruchom ./opt/noobs/scripts/chce_mikrus_cli.sh\n"
       exit
     else
       
