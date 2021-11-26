@@ -12,7 +12,7 @@ fi
 find_output_dir(){
     if [ -d "/storage/" ]
     then
-        output_directory="/storage/backup"
+        output_dir="/storage/backup"
     else
         if [ -s "/backup_key" ] 
         then
