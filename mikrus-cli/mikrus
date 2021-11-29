@@ -1,0 +1,209 @@
+#!/bin/bash
+# Instalacja MIKRUS-CLI
+# Autor: Artur Stefanski
+
+_maybe_show_help() {
+  if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ -z $1 ]; then
+    printf "
+ __  __ ___ _  ______  _   _ ____         ____ _     ___
+|  \/  |_ _| |/ /  _ \| | | / ___|       / ___| |   |_ _|
+| |\/| || || ' /| |_) | | | \___ \ _____| |   | |    | |
+| |  | || || . \|  _ <| |_| |___) |_____| |___| |___ | |
+|_|  |_|___|_|\_\_| \_.\___/|____/       \____|_____|___|
+
+Autor: Artur Stefanski
+
+info\t\t-i\t - informacje o Twoim serwerze (cache=60s)
+servers\t\t-s\t - listuje wszystkie Twoje serwery (cache=60s)
+restart\t\t-r\t - restartuje Twoj serwer
+logs\t\t-l\t - podglad ostatnich logow [10 sztuk]
+logs [--id id]\t\t - podglad konkretnego wpisu w logach (po ID)
+amfetamina\t-a\t - uruchamia amfetaminę na serwerze (zwiekszenie parametrow)
+db\t\t-db\t - zwraca dane dostepowe do baz danych (cache=60s);
+exec --cmd [polecenie] \t - wywoluje polecenie/polecenia wyslane w zmiennej 'cmd' (POST)
+stats\t\t\t - statystyki uzycia dysku, pamieci, uptime itp. (cache=60s)
+ports\t\t-p\t - zwraca przypisane do Twojego serwera porty TCP/UDP (cache=60s)
+-f \t\t\t - zwraca json w czytelnej formie
+-raw \t\t\t - zwraca raw
+--srv [nazwa_serwera] --key [API_key] - uzycie innego serwera (domyslnie uzywany jest serwer podany przy instalacji MIKRUS-CLI)
+add --srv [nazwa_serwera] --key [API_key] - dodanie kolejnego serwera do pliku konfiguracyjny
+--use [nazwa_serwera] - uzycie inneg serwera dodanego do pliku konfiguracyjnego
+
+przyklady:
+mikrus info -raw
+mikrus logs -f
+mikrus logs --id 100 -f
+mikrus exec --cmd uptime -f
+mikrus -db -f --srv x999 --key 4f5771adbb050c3cd103ce5372149f0b3620ad81
+mikrus add --srv x999 --key 4f5771adbb050c3cd103ce5372149f0b3620ad81
+mikrus --use x999 info -f
+
+"
+    exit 1
+  fi
+}
+
+if [ -f ~/.mikrus_cli.conf ]; then
+
+    first_arg="$1"
+
+    _maybe_show_help $first_arg
+
+    master_srv="unset"
+    master_key="unset"
+
+    srv="unset"
+    key="unset"
+
+    source ~/.mikrus_cli.conf
+
+    if [ $master_srv == "unset" ] && [ $master_key == "unset" ]; then
+      printf "\nNiepoprawny plik konfiguracyjny\n Uruchom ./opt/noobs/scripts/chce_mikrus_cli.sh\n"
+      exit
+    else
+
+      srv=${master_srv}
+      key=${master_key}
+
+      API_URL="https://api.mikr.us"
+      ENDPOINT="unset"
+      F="false"
+      RAW="false"
+      ID="false"
+      CMD="false"
+      ADD="false"
+      USE="false"
+
+      POSITIONAL=()
+      while [[ $# -gt 0 ]]; do
+        param="$1"
+
+        case $param in
+          add)
+            ADD="true"
+            shift # past argument
+            ;;
+          info|-i)
+            ENDPOINT="info"
+            shift # past argument
+            ;;
+          serwery|-s|servers)
+            ENDPOINT="serwery"
+            shift # past argument
+            ;;
+          restart|-r)
+            ENDPOINT="restart"
+            shift # past argument
+            ;;
+          logs|-l)
+            ENDPOINT="logs"
+            shift # past argument
+            ;;
+          amfetamina|-a)
+            ENDPOINT="amfetamina"
+            shift # past argument
+            ;;
+          db|-db)
+            ENDPOINT="db"
+            shift # past argument
+            ;;
+          exec|-db)
+            ENDPOINT="exec"
+            shift # past argument
+            ;;
+          stats)
+            ENDPOINT="stats"
+            shift # past argument
+            ;;
+          porty|-p|ports)
+            ENDPOINT="porty"
+            shift # past argument
+            ;;
+          -f)
+            F="f"
+            shift # past argument
+            ;;
+          -raw)
+            RAW="true"
+            shift # past argument
+            ;;
+          --id)
+            ID="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --cmd)
+            CMD="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --srv)
+            srv="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --key)
+            key="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --use)
+            USE="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          *)    # unknown option
+            POSITIONAL+=("$1 ") # save it in an array for later
+            shift # past argument
+            ;;
+        esac
+      done
+
+      if [ $ENDPOINT != "unset" ]; then
+
+        if [ $USE != "false" ];then
+            srv="${USE}_srv"
+            srv=${!srv}
+            key="${USE}_key"
+            key=${!key}
+        fi
+
+        if [ $RAW == "true" ]; then
+          ENDPOINT="$ENDPOINT.raw"
+        fi
+
+        if [ $ENDPOINT == 'logs' ] && [ $ID != "false" ]; then
+          ENDPOINT="$ENDPOINT/$ID"
+        fi
+
+        if [ $ENDPOINT == "exec" ] || [ $ENDPOINT == "exec.raw" ] ; then
+          if [ $CMD == "false" ]; then
+            printf "Nie podano --cmd\n"
+            exit 4
+          else
+            RESPONSE=$(curl -d "srv=$srv&key=$key&cmd=$CMD $POSITIONAL" "$API_URL/$ENDPOINT" 2>/dev/null)
+          fi
+
+        else
+            RESPONSE=$(curl -d "srv=$srv&key=$key" "$API_URL/$ENDPOINT" 2>/dev/null)
+        fi
+
+        if [ $F == "false" ] || [ $RAW == "true" ]; then
+          echo $RESPONSE
+        else
+          echo $RESPONSE | jq
+        fi
+      else
+        if [ $ADD != "false" ] ; then
+          printf "\n${srv}_srv=$srv\n${srv}_key=$key\n" >> ~/.mikrus_cli.conf
+          exit
+        fi
+      fi
+
+    fi
+
+else
+    printf "Brak pliku konfiguracyjnego\n Uruchom ./opt/noobs/scripts/chce_mikrus_cli.sh\n"
+    exit 2
+fi
+
