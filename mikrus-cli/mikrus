@@ -15,22 +15,28 @@ Autor: Artur Stefanski
 
 info\t\t-i\t - informacje o Twoim serwerze (cache=60s)
 servers\t\t-s\t - listuje wszystkie Twoje serwery (cache=60s)
-restart\t\t-r\t - restartuje Twój serwer
-logs\t\t-l\t - podgląd ostatnich logów [10 sztuk]
-amfetamina\t-a\t - uruchamia amfetaminę na serwerze (zwiększenie parametrów)
-db\t\t-db\t - zwraca dane dostępowe do baz danych (cache=60s);
-stats\t\t\t - statystyki użycia dysku, pamięci, uptime itp. (cache=60s)
+restart\t\t-r\t - restartuje Twoj serwer
+logs\t\t-l\t - podglad ostatnich logow [10 sztuk]
+logs [--id id]\t\t - podglad konkretnego wpisu w logach (po ID)
+amfetamina\t-a\t - uruchamia amfetaminę na serwerze (zwiekszenie parametrow)
+db\t\t-db\t - zwraca dane dostepowe do baz danych (cache=60s);
+exec --cmd [polecenie] \t - wywoluje polecenie/polecenia wyslane w zmiennej 'cmd' (POST)
+stats\t\t\t - statystyki uzycia dysku, pamieci, uptime itp. (cache=60s)
 ports\t\t-p\t - zwraca przypisane do Twojego serwera porty TCP/UDP (cache=60s)
 -f \t\t\t - zwraca json w czytelnej formie
-srv [nazwa_serwera] lub -srv [nazwa_serwera] - uzycie innego serwera (domyslnie uzywany jest serwer podany przy instalacji MIKRUS-CLI)
--k\t\t-key\t - API Key (https://mikr.us/panel/?a=api)
+-raw \t\t\t - zwraca raw
+--srv [nazwa_serwera] --key [API_key] - uzycie innego serwera (domyslnie uzywany jest serwer podany przy instalacji MIKRUS-CLI)
+add --srv [nazwa_serwera] --key [API_key] - dodanie kolejnego serwera do pliku konfiguracyjny
+--use [nazwa_serwera] - uzycie inneg serwera dodanego do pliku konfiguracyjnego
 
 przyklady:
-mikrus info -f
-mikrus ports
-mikrus servers -f
-mikrus -srv x999 -a -f
-mikrus -db -f -srv x999 -key 4f5771adbb050c3cd103ce5372149f0b3620ad81
+mikrus info -raw
+mikrus logs -f
+mikrus logs --id 100 -f
+mikrus exec --cmd uptime -f
+mikrus -db -f --srv x999 --key 4f5771adbb050c3cd103ce5372149f0b3620ad81
+mikrus add --srv x999 --key 4f5771adbb050c3cd103ce5372149f0b3620ad81
+mikrus --use x999 info -f
 
 "
     exit 1
@@ -43,25 +49,40 @@ if [ -f ~/.mikrus_cli.conf ]; then
 
     _maybe_show_help $first_arg
 
+    master_srv="unset"
+    master_key="unset"
+
     srv="unset"
-    srv="unset"
+    key="unset"
 
     source ~/.mikrus_cli.conf
 
-    if [ $srv == "unset" ] && [ $key == "unset" ]; then
+    if [ $master_srv == "unset" ] && [ $master_key == "unset" ]; then
       printf "\nNiepoprawny plik konfiguracyjny\n Uruchom ./opt/noobs/scripts/chce_mikrus_cli.sh\n"
       exit
     else
-      
+
+      srv=${master_srv}
+      key=${master_key}
+
       API_URL="https://api.mikr.us"
-      ENDPOINT=""
+      ENDPOINT="unset"
       F="false"
+      RAW="false"
+      ID="false"
+      CMD="false"
+      ADD="false"
+      USE="false"
 
       POSITIONAL=()
       while [[ $# -gt 0 ]]; do
         param="$1"
 
         case $param in
+          add)
+            ADD="true"
+            shift # past argument
+            ;;
           info|-i)
             ENDPOINT="info"
             shift # past argument
@@ -86,6 +107,10 @@ if [ -f ~/.mikrus_cli.conf ]; then
             ENDPOINT="db"
             shift # past argument
             ;;
+          exec|-db)
+            ENDPOINT="exec"
+            shift # past argument
+            ;;
           stats)
             ENDPOINT="stats"
             shift # past argument
@@ -98,29 +123,80 @@ if [ -f ~/.mikrus_cli.conf ]; then
             F="f"
             shift # past argument
             ;;
-          srv|-srv)
+          -raw)
+            RAW="true"
+            shift # past argument
+            ;;
+          --id)
+            ID="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --cmd)
+            CMD="$2"
+            shift # past argument
+            shift # past value
+            ;;
+          --srv)
             srv="$2"
             shift # past argument
             shift # past value
             ;;
-          key|-k|-key)
+          --key)
             key="$2"
             shift # past argument
             shift # past value
             ;;
+          --use)
+            USE="$2"
+            shift # past argument
+            shift # past value
+            ;;
           *)    # unknown option
-            POSITIONAL+=("$1") # save it in an array for later
+            POSITIONAL+=("$1 ") # save it in an array for later
             shift # past argument
             ;;
         esac
       done
 
       if [ $ENDPOINT != "unset" ]; then
-        RESPONSE=$(curl -d "srv=$srv&key=$key" "$API_URL/$ENDPOINT" 2>/dev/null)
-        if [ $F != "f" ]; then
+
+        if [ $USE != "false" ];then
+            srv="${USE}_srv"
+            srv=${!srv}
+            key="${USE}_key"
+            key=${!key}
+        fi
+
+        if [ $RAW == "true" ]; then
+          ENDPOINT="$ENDPOINT.raw"
+        fi
+
+        if [ $ENDPOINT == 'logs' ] && [ $ID != "false" ]; then
+          ENDPOINT="$ENDPOINT/$ID"
+        fi
+
+        if [ $ENDPOINT == "exec" ] || [ $ENDPOINT == "exec.raw" ] ; then
+          if [ $CMD == "false" ]; then
+            printf "Nie podano --cmd\n"
+            exit 4
+          else
+            RESPONSE=$(curl -d "srv=$srv&key=$key&cmd=$CMD $POSITIONAL" "$API_URL/$ENDPOINT" 2>/dev/null)
+          fi
+
+        else
+            RESPONSE=$(curl -d "srv=$srv&key=$key" "$API_URL/$ENDPOINT" 2>/dev/null)
+        fi
+
+        if [ $F == "false" ] || [ $RAW == "true" ]; then
           echo $RESPONSE
         else
           echo $RESPONSE | jq
+        fi
+      else
+        if [ $ADD != "false" ] ; then
+          printf "\n${srv}_srv=$srv\n${srv}_key=$key\n" >> ~/.mikrus_cli.conf
+          exit
         fi
       fi
 

@@ -16,11 +16,6 @@ przyklady:
 \t./chce_mikrus_cli.sh -s x999 -k 4f5771adbb050c3cd103ce5372149f0b3620ad81
 \t./chce_mikrus_cli.sh --srv x999 --key 4f5771adbb050c3cd103ce5372149f0b3620ad81
 
-Przykłady uzycia MIKRUS-CLI:
-\tmikrus --help
-\tmikrus info -f
-\tmikrus servers -f
-
 "
     exit 1
   fi
@@ -32,6 +27,7 @@ _maybe_show_help $first_arg
 
 SRV="unset"
 KEY="unset"
+REMOVE="false"
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
@@ -48,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    --remove)
+      REMOVE="true"
+      shift # past argument
+      ;;
     *)    # unknown option
       POSITIONAL+=("$1") # save it in an array for later
       shift # past argument
@@ -55,21 +55,41 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [ $REMOVE == "true" ]; then
+  [ -t 0 ] && unalias mikrus
+  rm ~/.mikrus_cli.conf
+  sudo rm /usr/bin/mikrus
+  exit
+fi
+
 if [ $SRV == "unset" ] && [ $KEY == "unset" ]; then
   printf "\nWymagane uzycie dwoch parametrow --srv --key\nSprawdz ./chce_mikrus_cli --help\n"
-  exit 3
+  exit
 else
 
   if [ -f ~/.mikrus_cli.conf ]; then
       echo "Plik konfiguracyjny już istnieje"
-      echo "Aby kontynuwoać usuń plik ~/.mikrus_cli.conf"
+      echo "Aby kontynuwoac usun plik ~/.mikrus_cli.conf lub uzyj ./chce_mikrus_cli.sh --remove"
       exit 2
   else
-      printf "srv=$SRV\nkey=$KEY"> ~/.mikrus_cli.conf
-      echo "Utworzono plik konfiguracyjny"
+      printf "master_srv=$SRV\nmaster_key=$KEY\n"> ~/.mikrus_cli.conf
+      if [ -f ~/.mikrus_cli.conf ]; then
+        echo "Utworzono plik konfiguracyjny ~/.mikrus_cli.conf"
+      else
+        echo "Nie udalo sie utworzyc pliku konfiguracyjnego ~/.mikrus_cli.conf!"
+        exit 3
+      fi
       SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
       sudo cp ${SCRIPTPATH}/../mikrus-cli/mikrus /usr/bin/mikrus
-      sudo apt install jq -y
+      sudo chmod +x /usr/bin/mikrus
+      sudo apt-get update
+      sudo apt-get install jq -y
+      printf "
+Przyklady uzycia MIKRUS-CLI:
+\tmikrus --help
+\tmikrus info
+\tmikrus servers -f
+"
   fi
 
 fi
