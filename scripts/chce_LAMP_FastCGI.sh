@@ -43,7 +43,7 @@ systemctl enable mariadb
 rm /var/www/html/index.html
 
 # Dowód na działanie PHP
-echo '<?php echo "2 + 2 = ".(2+2); ' >/var/www/html/index.php
+echo '<?php echo "2 + 2 = ".(2+2); ?>' >/var/www/html/index.php
 
 # == Lekki hardening ustawień ==
 
