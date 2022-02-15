@@ -32,6 +32,6 @@ cd /usr/local/mysql && ./bin/mysqld --basedir=/usr/local/mysql/ --datadir=/usr/l
 echo "cd /usr/local/mysql && ./bin/mysqld --basedir=/usr/local/mysql/ --datadir=/usr/local/mysql/data --user=$2 --log-error=/usr/local/mysql/data/mysql.err --pid-file=/usr/local/mysql/mysql.pid --secure-file-priv=/usr/local/mysql/mysql_secure --socket=/usr/local/mysql/thesock --port=$2 &" > /root/mysqlstart.sh
 echo "W pliku /root/mysqlstart.sh jest zapisane polecenie do odpalenia bazy danych MySQL"
 echo "Aby zmienić hasło roota wykonaj polecenie: cd /usr/local/mysql/bin/ && ./mysqladmin --user=root --socket=/usr/local/mysql/thesock --protocol=socket password tuwpiszswojenowehaslo"
-echo "Aby z linii poleceń zalogować się do serwera MySQL wydaj polecenie cd /usr/local/mysql/bin/ && ./mysql -u root -P 3306 -p"
+echo "Aby z linii poleceń zalogować się do serwera MySQL wydaj polecenie cd /usr/local/mysql/bin/ && ./mysql -u root -P $2 -p"
 fi
 fi
