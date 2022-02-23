@@ -21,7 +21,7 @@ exit 0
 else
 mkdir /usr/local/mysql
 cd /usr/local/mysql/
-dbver1=$(curl https://mariadb.com/kb/en/changes-improvements-in-mariadb-106/ | grep -Eo 'MariaDB 10.6.([0-9])' | head -1 | awk '{print $2}')
+dbver1=$(curl https://mariadb.com/kb/en/changes-improvements-in-mariadb-106/ | grep -Eo 'MariaDB 10.6.([0-9]+)' | head -1 | awk '{print $2}')
 wget https://mirror.vpsfree.cz/mariadb//mariadb-"$dbver1"/bintar-linux-systemd-x86_64/mariadb-"$dbver1"-linux-systemd-x86_64.tar.gz -O /usr/local/mysql/mariadb.tar.gz
 cd /usr/local/mysql/ && tar -xzvf mariadb.tar.gz --strip-components 1
 mkdir /usr/local/mysql/mysql_secure
