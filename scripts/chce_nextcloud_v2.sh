@@ -36,14 +36,14 @@ if [[ -f /usr/bin/php7.4 ]]; then
 fi
 
 nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
-	| grep -Eo 'https://.+\/releases\/.+\.zip"' | sed 's/"//g')
+	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"' | sed 's/"//g')
 
-apt install -y apache2 libapache2-mod-fcgid php$php_version-fpm php$php_version-memcached php$php_version-memcache memcached libmemcached-tools openssl wget php$php_version-imagick php$php_version-xml php$php_version-intl php$php_version-dom php$php_version-mysqli php$php_version-sqlite3 php$php_version-gd php$php_version-mbstring php$php_version-common php$php_version-curl php$php_version-gd php$php_version-imap php$php_version-intl php$php_version-json php$php_version-mbstring php$php_version-mysql php$php_version-ssh2 php$php_version-xml php$php_version-zip php$php_version-apcu php$php_version-ldap php$php_version-apcu 
-a2enmod dir env headers mime rewrite setenvif
+apt install -y apache2 libapache2-mod-fcgid php$php_version-fpm php$php_version-memcached php$php_version-memcache memcached libmemcached-tools openssl wget php$php_version-imagick php$php_version-xml php$php_version-intl php$php_version-dom php$php_version-mysqli php$php_version-sqlite3 php$php_version-gd php$php_version-mbstring php$php_version-common php$php_version-curl php$php_version-gd php$php_version-imap php$php_version-intl php$php_version-mbstring php$php_version-mysql php$php_version-ssh2 php$php_version-xml php$php_version-zip php$php_version-apcu php$php_version-ldap php$php_version-gmp libmagickcore-6.q16-6-extra
+a2enmod dir env headers mime rewrite setenvif ssl
 a2dismod mpm_prefork php$php_version
 a2enmod mpm_event proxy proxy_fcgi
 a2enconf php$php_version-fpm
-phpenmod apcu memcache
+phpenmod -v $php_version apcu memcache
 echo "apc.enable_cli=1" >> /etc/php/$php_version/cli/php.ini
 echo "apc.enable_cli=1" >> /etc/php/$php_version/fpm/php.ini
 
@@ -56,59 +56,72 @@ if [[ -d "/storage" ]]; then
         fi
         rm -rf /storage/nextcloud
     fi
-    cd /storage && wget "$nextcloud_link" -O nextcloud.zip
-    cd /storage && unzip nextcloud.zip
-    cd /storage && rm nextcloud.zip
+    cd /storage && wget "$nextcloud_link" -O nextcloud.tar.bz2
+    cd /storage && tar -xf nextcloud.tar.bz2
+    cd /storage && rm nextcloud.tar.bz2
     chown -R www-data:www-data /storage/nextcloud
 
-aconf=$(cat <<EOF
+cat > /etc/apache2/sites-available/nextcloud.conf <<\EOL
 Alias /nextcloud "/storage/nextcloud"
 <Directory /storage/nextcloud>
   Options +FollowSymlinks
   AllowOverride All
   Require all granted
 </Directory>
-EOF
-)
+EOL
 
-dirconf=$(cat <<EOF
+cat > /storage/nextcloud/config/autoconfig.php <<\EOL
 <?php
 $AUTOCONFIG = [
   "directory"     => "/storage/nextcloud/data",
 ];
-EOF
-)
-echo "$dirconf" >> /storage/nextcloud/config/autoconfig.php
+EOL
+
+cat > /storage/nextcloud/config/memcache.config.php <<\EOL
+<?php
+$_SERVER['HTTPS'] = 'on';
+$CONFIG = array (
+  'memcache.local' => '\OC\Memcache\APCu',
+  'filelocking.enabled' => 'true',
+  'memcache.locking' => '\OC\Memcache\APCu',
+);
+EOL
 
 echo "*/5  *  *  *  * sudo -u www-data /usr/bin/php --define apc.enable_cli=1 -f /storage/nextcloud/cron.php" >> /tmp/crontasks
-echo "$aconf" > /etc/apache2/sites-available/nextcloud.conf
 
 else
-cd /var/www/html && wget "$nextcloud_link" -O nextcloud.zip
-cd /var/www/html && unzip nextcloud.zip
-cd /var/www/html && rm nextcloud.zip
+cd /var/www/html && wget "$nextcloud_link" -O nextcloud.tar.bz2
+cd /var/www/html && tar -xf nextcloud.tar.bz2
+cd /var/www/html && rm nextcloud.tar.bz2
 chown -R www-data:www-data /var/www/html
 
-aconf=$(cat <<EOF
-Alias /nextcloud "/var/www/html/nextcloud/"
+cat > /etc/apache2/sites-available/nextcloud.conf <<\EOL
+Alias /nextcloud "/var/www/html/nextcloud"
 <Directory /var/www/html/nextcloud>
   Options +FollowSymlinks
   AllowOverride All
+  Require all granted
 </Directory>
-EOF
-)
+EOL
 
-dirconf=$(cat <<EOF
+cat > /var/www/html/nextcloud/config/autoconfig.php <<\EOL
 <?php
 $AUTOCONFIG = [
   "directory"     => "/var/www/html/nextcloud/data",
 ];
-EOF
-)
-echo "$dirconf" >> /var/www/html/nextcloud/config/autoconfig.php
+EOL
+
+cat > /var/www/html/nextcloud/config/memcache.config.php <<\EOL
+<?php
+$_SERVER['HTTPS'] = 'on';
+$CONFIG = array (
+  'memcache.local' => '\OC\Memcache\APCu',
+  'filelocking.enabled' => 'true',
+  'memcache.locking' => '\OC\Memcache\APCu',
+);
+EOL
 
 echo "*/5  *  *  *  * sudo -u www-data /usr/bin/php --define apc.enable_cli=1 -f /var/www/html/nextcloud/cron.php" >> /tmp/crontasks
-echo "$aconf" > /etc/apache2/sites-available/nextcloud.conf
 
 fi
 
