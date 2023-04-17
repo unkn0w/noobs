@@ -54,7 +54,7 @@ status "sprawdzanie portu $port"
 sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. Skladnia: $0 [port]."; } 
 
 # pobierz linka do najnowszej paczki
-latest="$(curl -s https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb')"
+latest="$(curl -Ls https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb')"
 
 # ściagnij paczke z powyższego linka (jeśli nie istnieje)
 status "pobieranie instalatora"
