@@ -8,7 +8,7 @@ SERVICE_NAME="k3s"
 
 # zaintaluj wg dokumentacji
 # https://docs.k3s.io/quick-start
-/bin/curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | sh -
 
 # zatrzymanie uslugi
 /bin/systemctl disable --now "$SERVICE_NAME"
