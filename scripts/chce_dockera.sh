@@ -21,7 +21,12 @@ echo \
 
 apt update
 # Instalacja dockera
-apt install -y docker-ce docker-ce-cli containerd.io docker-compose
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Nadanie uprawnień do Dockera dla obecnego non-root usera
+groupadd docker
+usermod -aG docker $USER
+newgrp docker
 
 # Sprawdzenie czy Docker został prawidłowo zainstalowany
 docker run hello-world
