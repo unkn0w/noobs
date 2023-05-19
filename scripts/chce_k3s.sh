@@ -12,8 +12,12 @@ SERVICE_NAME="k3s"
 
 # zatrzymanie uslugi
 /bin/systemctl disable --now "$SERVICE_NAME"
+
+# kopia zapasowa
 cp "$SERVICE_FILE" "${SERVICE_FILE}.bak"
 
+# dodanie poprawki do pliku
+sed -i '$d' "$SERVICE_FILE"
 cat <<EOF >>"$SERVICE_FILE"
     --kubelet-arg=feature-gates=KubeletInUserNamespace=true \\
     --kube-controller-manager-arg=feature-gates=KubeletInUserNamespace=true \\
@@ -28,3 +32,8 @@ EOF
 /bin/systemctl enable --now "$SERVICE_NAME"
 
 exit
+
+# rollback
+/bin/systemctl disable --now k3s
+cp /etc/systemd/system/k3s.service.bak /etc/systemd/system/k3s.service
+/usr/local/bin/k3s-uninstall.sh
