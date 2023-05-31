@@ -18,7 +18,7 @@ NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 apt update
 apt install -y apache2 mariadb-server libapache2-mod-php8.1
 apt install -y php8.1-gd php8.1-mysql php8.1-curl php8.1-mbstring php8.1-intl
-apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip
+apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip php8.1-fpm
 
 #Configuring mariaDB
 #/etc/init.d/mysql start
@@ -66,6 +66,8 @@ a2enmod env
 a2enmod dir
 a2enmod mime
 a2enmod setenvif
+a2enmod proxy_fcgi setenvif
+a2enconf php8.1-fpm
 service apache2 restart
 
 chown -R www-data:www-data /var/www/html/
