@@ -41,6 +41,7 @@ if [ -z "$host" ]; then
     hosts["k"]="srv14"
     hosts["l"]="srv15"
     hosts["m"]="srv16"
+    hosts["p"]="srv19"
     hosts["q"]="mini01"
     hosts["x"]="maluch"
     host="${hosts[$key]}"
