@@ -1,6 +1,7 @@
 #!/bin/bash
 # Create OpenVPN server
 # Autor: Radoslaw Karasinski
+# Update: Dawid Pospiech
 # Usage: you can pass --port and/or --host variables to script, otherwise
 # defaults will be choosen.
 
@@ -28,7 +29,7 @@ if lsof -i:$port > /dev/null 2>&1 ; then
 fi
 
 if [ -z "$host" ]; then
-    key="$( hostname | grep -o '[^0-9]\+' )"
+    key="$( hostname | grep -io '^[a-z]' )"
     declare -A hosts
     hosts["a"]="srv03"
     hosts["b"]="srv04"
@@ -41,11 +42,17 @@ if [ -z "$host" ]; then
     hosts["k"]="srv14"
     hosts["l"]="srv15"
     hosts["m"]="srv16"
+    hosts["p"]="srv19"
     hosts["q"]="mini01"
     hosts["x"]="maluch"
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
         echo "Server hostname not known for key $key"
+        echo "You can set it by yourself with command:"
+        echo "export host=<replace with server name eg srv100>"
+        echo "example:"
+        echo "export host=srv19"
+        echo "After that you can try rerun $0"
         exit 1
     fi
     host="$host.mikr.us"
