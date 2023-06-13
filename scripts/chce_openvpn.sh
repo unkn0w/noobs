@@ -1,8 +1,38 @@
 #!/bin/bash
 # Create OpenVPN server
 # Autor: Radoslaw Karasinski
+# Update: Dawid Pospiech
 # Usage: you can pass --port and/or --host variables to script, otherwise
 # defaults will be choosen.
+
+# Helper to keep essential code tight
+function get-hostname
+{
+    # Return hostname as plaintext
+    FQDN="$(curl -s https://ipinfo.io/hostname)"
+
+    if [[ "$FQDN" =~ ^.*[.]mikr[.]us$ ]]; then
+        host=$(echo "$FQDN" | cut -f1 -d '.' )
+        echo "$host"
+        export host="$host"
+        
+    elif [[ ! "$FQDN" =~ ^.*[.]mikr[.]us ]]; then
+        echo
+        echo "Valid hostname is still not known : ( "
+        echo
+        echo "You can set it by yourself with command:"
+        echo "export host=<replace with server name eg srv100>"
+        echo
+        echo "example connection command:"
+        echo "ssh root@srv100.mikr.us -p12333"
+        echo ""
+        echo "export host='srv100'"
+        echo "After that you can try rerun $0"
+        exit 1
+
+    fi
+
+}
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
@@ -12,13 +42,12 @@ while [ $# -gt 0 ]; do
     fi
   shift
 done
-
-if ! ls /dev/net/tun > /dev/null 2>&1 ; then
+if [[ ! -c /dev/net/tun ]]; then
     echo "TUN/TAP not activated!"
     exit 1
 fi
 
-if [ -z "$port" ]; then
+if [[ -z "$port" ]]; then
     port="$(( 20000 + $(hostname | grep -o '[0-9]\+') ))"
 fi
 
@@ -28,7 +57,7 @@ if lsof -i:$port > /dev/null 2>&1 ; then
 fi
 
 if [ -z "$host" ]; then
-    key="$( hostname | grep -o '[^0-9]\+' )"
+    key="$( hostname | grep -o '^[a-z]' )"
     declare -A hosts
     hosts["a"]="srv03"
     hosts["b"]="srv04"
@@ -45,9 +74,15 @@ if [ -z "$host" ]; then
     hosts["q"]="mini01"
     hosts["x"]="maluch"
     host="${hosts[$key]}"
-    if [ -z "$host" ]; then
-        echo "Server hostname not known for key $key"
-        exit 1
+
+    if [ -z "$host" ]
+    then
+
+        echo "Server hostname not known for key: $key"
+        echo
+        echo "Trying to get correct value with helper utility:"
+        get-hostname
+
     fi
     host="$host.mikr.us"
 fi
