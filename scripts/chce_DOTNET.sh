@@ -17,14 +17,14 @@ dotnet_version="$1"
 
 apt-get install -y lsb-release
 
-os-version=$(lsb_release -sr)
+OS_VERSION="$(lsb_release -sr)"
 
 # Zainstaluj klucze do podpisywania pakietów microsoft
 apt-get install -y gpg
 cd /tmp
 wget -O - https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o microsoft.asc.gpg
 mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
-wget https://packages.microsoft.com/config/ubuntu/'$os-version'/prod.list
+wget https://packages.microsoft.com/config/ubuntu/"OS_VERSION"/prod.list
 mv prod.list /etc/apt/sources.list.d/microsoft-prod.list
 chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
 chown root:root /etc/apt/sources.list.d/microsoft-prod.list
