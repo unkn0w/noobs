@@ -19,7 +19,7 @@ add-apt-repository -y ppa:nginx/stable
 apt update
 
 # nginx + najpopularniejsze moduły do PHP
-apt install -y nginx php8.0 php8.0-fpm php8.0-zip php8.0-xml php8.0-sqlite3 php8.0-pgsql php8.0-mysql php8.0-mcrypt php8.0-mbstring php8.0-intl php8.0-gd php8.0-curl php8.0-cli php8.0-bcmath
+apt install -y apache2 php libapache2-mod-php php-zip php-xml php-sqlite3 php-pgsql php-mysql php-mcrypt php-mbstring php-intl php-gd php-curl php-cli php-bcmath
 
 # dodanie MariaDB (klient i serwer)
 apt install -y mariadb-server mariadb-client
