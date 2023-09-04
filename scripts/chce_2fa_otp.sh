@@ -1,5 +1,13 @@
 #!/bin/bash
 
+if [ -f "/etc/pam.d/sshd" ]; then
+    if grep -Fq "pam_google_authenticator.so" "/etc/pam.d/sshd"; then
+        echo -e "\033[0;31m2FA prawdopodobnie jest już skonfigurowane na twoim systemie."
+        echo -e "\033[0;33mZweryfikuj zawartość pliku \033[0m\033[7m/etc/pam.d/sshd\033[0;33m i spróbuj ponownie.\033[0m"
+        exit 1
+    fi
+fi
+
 echo -e "\033[0;33mUWAGA\t\033\033[0;31mUWAGA\t\033[1;36mUWAGA\033[0m"
 echo -e "Uruchom przynajmiej jedną \033[4mdodatkową\033[0m sesję ssh \033[4mprzed\033[0m wykonaniem tego skryptu!"
 echo -e "Wykonaj oczywiście z sudo.\n"
@@ -22,14 +30,6 @@ fi
 if [ ! -f "$HOME/.google_authenticator" ]; then
     echo -e "\033[0;31mNie znaleziono pliku konfiguracyjnego 2FA w katalogu domowym. Spróbuj ponownie uruchomić skrypt.\033[0m"
     exit 1
-fi
-
-if [ -f "/etc/pam.d/sshd" ]; then
-    if grep -Fq "pam_google_authenticator.so" "/etc/pam.d/sshd"; then
-        echo -e "\033[0;31m2FA prawdopodobnie jest już skonfigurowane na twoim systemie."
-        echo -e "\033[0;33mZweryfikuj zawartość pliku \033[0m\033[7m/etc/pam.d/sshd\033[0;33m i spróbuj ponownie.\033[0m"
-        exit 1
-    fi
 fi
 
 echo "auth [success=done default=ignore] pam_succeed_if.so user ingroup without-otp" >>/etc/pam.d/sshd
