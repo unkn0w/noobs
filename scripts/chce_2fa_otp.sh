@@ -11,7 +11,8 @@ if [ "$key" != "" ]; then
     exit 1
 fi
 
-apt install libpam-google-authenticator
+apt update
+apt install -y libpam-google-authenticator
 google-authenticator
 if [ $? != 0 ]; then
     echo -e "\033[0;31mKonfiguracja 2FA nie zwróciła prawidłowego kodu zakończenia, anulowanie aktywowania usługi 2FA...\033[0m"
