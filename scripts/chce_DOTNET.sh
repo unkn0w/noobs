@@ -17,7 +17,7 @@ dotnet_version="$1"
 
 apt-get install -y lsb-release
 
-os-version=$(lsb_release -sr)
+os-version="$(lsb_release -sr)"
 
 # Zainstaluj klucze do podpisywania pakietów microsoft
 apt-get install -y gpg
