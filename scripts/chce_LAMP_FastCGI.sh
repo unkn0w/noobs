@@ -24,8 +24,8 @@ a2enmod rewrite setenvif proxy proxy_fcgi
 apt install memcached libmemcached-tools -y
 
 # aktywacja konfiguracji modułu php-fpm dla apache2
-phpversion=$(/usr/bin/php.default -v | head -1 | cut -c5-7)
-a2enconf php"$phpversion"-fpm
+PHP_VERSION = "$(/usr/bin/php.default -v | head -1 | cut -c5-7)"
+a2enconf php"$PHP_VERSION"-fpm
 
 # restart usługi po dodaniu nowego modułu
 apache2ctl restart
