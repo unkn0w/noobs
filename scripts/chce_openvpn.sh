@@ -29,9 +29,7 @@ function get-hostname
         echo "export host='srv100'"
         echo "After that you can try rerun $0"
         exit 1
-
     fi
-
 }
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
@@ -42,6 +40,7 @@ while [ $# -gt 0 ]; do
     fi
   shift
 done
+
 if [[ ! -c /dev/net/tun ]]; then
     echo "TUN/TAP not activated!"
     exit 1
@@ -58,35 +57,28 @@ fi
 
 if [ -z "$host" ]; then
     key="$( hostname | grep -o '^[a-z]' )"
+
+    # New: Download and parse the server list
+    server_list=$(curl -s https://mikr.us/serwery.txt)
     declare -A hosts
-    hosts["a"]="srv03"
-    hosts["b"]="srv04"
-    hosts["e"]="srv07"
-    hosts["f"]="srv08"
-    hosts["g"]="srv09"
-    hosts["h"]="srv10"
-    hosts["i"]="srv11"
-    hosts["j"]="srv12"
-    hosts["k"]="srv14"
-    hosts["l"]="srv15"
-    hosts["m"]="srv16"
-    hosts["p"]="srv19"
-    hosts["q"]="mini01"
-    hosts["x"]="maluch"
+    while read -r line; do
+        key=$(echo "$line" | cut -d'=' -f1)
+        value=$(echo "$line" | cut -d'=' -f2)
+        hosts["$key"]="$value"
+    done <<< "$server_list"
+
+    # Modified: Replacing static array with dynamic one
     host="${hosts[$key]}"
 
     if [ -z "$host" ]
     then
-
         echo "Server hostname not known for key: $key"
         echo
         echo "Trying to get correct value with helper utility:"
         get-hostname
-
     fi
     host="$host.mikr.us"
 fi
-
 
 echo "Using hostname $host and port $port for configuration."
 
