@@ -58,6 +58,9 @@ echo '<?php echo "2 + 2 = ".(2+2); ' >/var/www/html/index.php
 # Serwer będzie się przedstawiał jako "Nginx" - bez wersji serwera
 sed -e 's/# server_tokens off;/server_tokens off;/' -i /etc/nginx/nginx.conf 
 
+# Dodanie nginxa do autostartu
+systemctl enable --now nginx
+
 # Przeładowanie nginxa
 systemctl reload nginx
 
