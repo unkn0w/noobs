@@ -5,7 +5,7 @@
 status() {
     echo "[x] $1"
 }
-
+JENKINS_PORT = 80
 status "instalacja wymaganych pakietow"
 sudo apt install -y gnupg
 echo
@@ -26,7 +26,7 @@ echo
 status "poprawki w konfiguracji"
 sudo systemctl stop jenkins
 sed -i 's|User=jenkins|User=root|' /lib/systemd/system/jenkins.service
-sed -i 's|JENKINS_PORT=8080|JENKINS_PORT=80|' /lib/systemd/system/jenkins.service
+sed -i 's|JENKINS_PORT=8080|JENKINS_PORT=${JENKINS_PORT}|' /lib/systemd/system/jenkins.service
 sudo systemctl daemon-reload
 echo
 
