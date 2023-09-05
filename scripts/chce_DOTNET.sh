@@ -40,3 +40,6 @@ apt-get install -y aspnetcore-runtime-"$dotnet_version"
 
 # Lub alternatywa: ASP.NET zmiast ASP.NET Core
 # sudo apt-get install -y dotnet-runtime-"$dotnet_version"
+
+# sprawdzenie wersji i poprawnosci instalacji
+/usr/bin/dotnet --info
