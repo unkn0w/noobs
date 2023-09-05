@@ -21,8 +21,6 @@ echo "Dumping database to ${BACKUP_DIR}${DB_NAME}_${BACKUP_DATE}.sql"
 if [ ! -d "${BACKUP_DIR}" ]; then
     mkdir -p "${BACKUP_DIR}"
 fi 
-   
-PGPASSWORD="${DB_PASSWORD}" pg_dump -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -w --format=custom | xz > "${BACKUP_DIR}${DB_NAME}_${BACKUP_DATE}.xz"
 
 echo "Dumping database finnish" 
 
