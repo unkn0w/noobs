@@ -25,17 +25,17 @@ fi
 
 # Download and install Wireguard-Go
 cd /tmp/ || exit
-wget https://git.zx2c4.com/wireguard-go/snapshot/wireguard-go-0.0.20230223.tar.xz
-tar -xf wireguard-go-0.0.20230223.tar.xz
-rm wireguard-go-0.0.20230223.tar.xz
-mv wireguard-go-0.0.20230223 wireguard-go
+wget https://github.com/WireGuard/wireguard-go/archive/refs/heads/master.zip
+unzip master.zip -d wireguard-go
+rm master.zip
 
 # Clone the Wireguard tools repository
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
 # Download and install Go
-wget https://dl.google.com/go/go1.21.0.linux-amd64.tar.gz -O /tmp/go1.21.0.linux-amd64.tar.gz
-tar -zxf go1.21.0.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.21.1.linux-amd64.tar.gz -O /tmp/go1.21.1.linux-amd64.tar.gz
+
+tar -zxf go1.21.1.linux-amd64.tar.gz
 mv /tmp/go /usr/local
 export GOROOT=/usr/local/go
 export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
