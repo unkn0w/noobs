@@ -6,7 +6,7 @@
 set -e
 
 # Check version at: https://go.dev/dl/
-GO_VERSION=$(curl -s "https://go.dev/VERSION?m=text")
+GO_VERSION=$(curl -s "https://go.dev/VERSION?m=text" | head -n 1)
 
 GO_ARCHIVE_OUTPUT="/tmp/$GO_VERSION.linux-amd64.tar.gz"
 GO_INSTALL_PATH="/usr/local"
