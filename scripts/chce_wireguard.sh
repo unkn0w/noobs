@@ -113,4 +113,3 @@ qrencode -t ansiutf8 </etc/wireguard/wg-client1.conf
 # Clean up temporary files
 rm -rf /tmp/wireguard-tools
 rm -rf /tmp/wireguard-go
-rm $GO_ARCHIVE_OUTPUT
