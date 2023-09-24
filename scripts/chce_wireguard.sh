@@ -1,7 +1,8 @@
 #!/bin/bash
 # Autor skryptu: Andrzej Szczepaniak
 # Współautor: Jakub 'unknow' Mrugalski
-# Aktualizacja paczek go, wg: Dawid Kasza
+# Aktualizacja: Dawid Kasza
+set -e
 
 # Backup the current resolv.conf file
 cp /etc/resolv.conf /etc/resolv.back
@@ -26,34 +27,53 @@ fi
 # Download and install Wireguard-Go
 cd /tmp/ || exit
 wget https://github.com/WireGuard/wireguard-go/archive/refs/heads/master.zip
-unzip master.zip -d wireguard-go
+unzip -qq master.zip  -d wireguard-go
 rm master.zip
 
 # Clone the Wireguard tools repository
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
 # Download and install Go
-wget https://go.dev/dl/go1.21.1.linux-amd64.tar.gz -O /tmp/go1.21.1.linux-amd64.tar.gz
+# Check version at: https://go.dev/dl/
+GO_VERSION=$(curl -s "https://go.dev/VERSION?m=text" | head -n 1)
 
-tar -zxf go1.21.1.linux-amd64.tar.gz
-mv /tmp/go /usr/local
-export GOROOT=/usr/local/go
-export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
+GO_ARCHIVE_OUTPUT="/tmp/$GO_VERSION.linux-amd64.tar.gz"
+GO_INSTALL_PATH="/usr/local"
+GO_URL="https://go.dev/dl/$GO_VERSION.linux-amd64.tar.gz"
 
-# Create a symlink for Go
-ln -s /usr/local/go/bin/go /usr/bin/
+# Remove older version of Go if exist
+if [ -d "/usr/local/go" ]; then
+  echo -e "Znaleziono stara wersje Go. Zostanie ona usunieta.\n"
+  rm -rf "/usr/local/go"
+fi
+
+# Download Go archive
+echo -e "Pobieram $GO_VERSION.linux-amd64.tar.gz do katalogu $GO_ARCHIVE_OUTPUT\n"
+wget -q -O $GO_ARCHIVE_OUTPUT "$GO_URL"
+
+# Extract Go archive
+echo -e "Wypakowuje $GO_ARCHIVE_OUTPUT do katalogu $GO_INSTALL_PATH\n"
+tar -xf $GO_ARCHIVE_OUTPUT -C $GO_INSTALL_PATH
+
+# Add PATH env
+if [ $SUDO_USER ] && [ $SUDO_USER != "root" ] ; then
+  export PROFILE_PATH="/home/$SUDO_USER/.profile"
+else
+  export PROFILE_PATH="$HOME/.profile"
+fi
+
+# If Go PATH export doesn't exist, add it
+if ! grep 'export PATH=$PATH:/usr/local/go/bin' $PROFILE_PATH > /dev/null ; then
+  echo -e "Dodaje Go do PATH w pliku $PROFILE_PATH\n"
+  echo 'export PATH=$PATH:/usr/local/go/bin' >> $(ls $PROFILE_PATH)
+fi
+
+source ~/.profile
 
 # Build and install Wireguard tools
-cd /tmp/wireguard-tools/src/ || exit
+cd /tmp/wireguard-go/wireguard-go-master
 make
 make install
-
-# Build Wireguard-Go
-cd /tmp/wireguard-go || exit
-make
-
-# Copy Wireguard-Go binary to /usr/bin
-cp /tmp/wireguard-go/wireguard-go /usr/bin
 
 # Generate Wireguard keys and set permissions
 wg genkey > /etc/wireguard/privatekey
@@ -93,3 +113,4 @@ qrencode -t ansiutf8 </etc/wireguard/wg-client1.conf
 # Clean up temporary files
 rm -rf /tmp/wireguard-tools
 rm -rf /tmp/wireguard-go
+rm $GO_ARCHIVE_OUTPUT
