@@ -1,12 +1,18 @@
 #!/bin/bash
 # Create ssh config for easy connection with mikr.us
-# Autor: Radoslaw Karasinski
+# Autor: Radoslaw Karasinski, Artur 'stefopl' Stefanski
 # Usage: you can pass following arguments:
 #   --mikrus MIKRUS_NAME (i.e. 'X123')
 #   --user USERNAME (i.e. 'root')
 #   --port PORT_NUMBER (to configure connection for non mikr.us host)
 #   --host HOSTNAME (to configure connection for non mikr.us host)
 #   username@test.com (without param in front)
+
+# Read hosts from serwery.txt
+declare -A hosts
+while IFS='=' read -r key value; do
+  hosts["$key"]="$value"
+done < "../serwery.txt"
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
@@ -44,15 +50,6 @@ if [ -n "$mikrus" ]; then
     port="$(( 10000 + $(echo $mikrus | grep -o '[0-9]\+') ))"
 
     key="$(echo $mikrus | grep -o '[^0-9]\+' )"
-    declare -A hosts
-    hosts["a"]="srv03"
-    hosts["b"]="srv04"
-    hosts["e"]="srv07"
-    hosts["f"]="srv08"
-    hosts["g"]="srv09"
-    hosts["h"]="srv10"
-    hosts["q"]="mini01"
-    hosts["x"]="maluch"
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
         echo "ERROR: Server hostname not known for key '$key'."
@@ -66,10 +63,15 @@ if [ -n "$possible_ssh_param" ]; then
     host="${possible_ssh_param#*@}"
 fi
 
-
-
 if [ -z "$host" ]; then
     echo "ERROR: Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com)."
+    echo ""
+    echo "Usage: you can pass following arguments:"
+    echo "  --mikrus MIKRUS_NAME (i.e. 'X123')"
+    echo "  --user USERNAME (i.e. 'root')"
+    echo "  --port PORT_NUMBER (to configure connection for non mikr.us host)"
+    echo "  --host HOSTNAME (to configure connection for non mikr.us host)"
+    echo "  username@test.com (without param in front)"
     exit 5
 fi
 
@@ -81,11 +83,16 @@ if [ -n "$decision" ]; then
     exit 0
 fi
 
+if [ -n "$mikrus" ]; then
+    ssh_key_file="$HOME/.ssh/mikrus-$mikrus-$user-$host-port-$port-rsa"
+    header="mikrus-$mikrus-$user-$host-$port"
+else
+    ssh_key_file="$HOME/.ssh/$user-$host-port-$port-rsa"
+    header="$user-$host"
+fi
 
-ssh_key_file="$HOME/.ssh/$user-$host-port-$port-rsa"
-ssh-keygen -t rsa -b 4096 -f "$ssh_key_file" -C "$user@$host:$port"
+ssh-keygen -t rsa -b 4096 -f "$ssh_key_file" -C "$USER@$HOSTNAME"
 
-header="$user-$host-$port"
 touch ~/.ssh/config # just in case if file was not created in past
 if ! grep -q "$header" ~/.ssh/config ; then
     echo "" >> ~/.ssh/config
@@ -103,4 +110,4 @@ ssh-copy-id -i $ssh_key_file $header
 
 echo ""
 echo "ssh was properly configured!"
-echo "Remmber, that you can use tab to use autofill to type connection string faster - type few first chars of Host (i.e. 'ssh ${header:0:8}', or even less) , then press tab."
+echo "Remember, that you can use tab to use autofill to type connection string faster - type few first chars of Host (i.e. 'ssh ${header:0:8}', or even less), then press tab."
