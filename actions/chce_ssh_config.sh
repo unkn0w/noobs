@@ -8,12 +8,6 @@
 #   --host HOSTNAME (to configure connection for non mikr.us host)
 #   username@test.com (without param in front)
 
-# Read hosts from serwery.txt
-declare -A hosts
-while IFS='=' read -r key value; do
-  hosts["$key"]="$value"
-done < "../serwery.txt"
-
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
     if [[ $1 == *"--"* ]]; then
@@ -50,6 +44,28 @@ if [ -n "$mikrus" ]; then
     port="$(( 10000 + $(echo $mikrus | grep -o '[0-9]\+') ))"
 
     key="$(echo $mikrus | grep -o '[^0-9]\+' )"
+
+    url="https://mikr.us/serwery.txt"
+    servers=""
+    if command -v curl &> /dev/null; then
+        servers=$(curl -s "$url")
+    elif command -v wget &> /dev/null; then
+        servers=$(wget -q -O - "$url")
+    else
+        echo "ERROR: Neither 'curl' nor 'wget' were found."
+        exit 1
+    fi
+
+    if [ -z "$servers" ]; then
+        echo "ERROR: Unable to download the list of servers."
+        exit 1
+    fi
+
+    declare -A hosts
+    while IFS='=' read -r server value; do
+        hosts["$server"]="$value"
+    done <<< "$servers"
+
     host="${hosts[$key]}"
     if [ -z "$host" ]; then
         echo "ERROR: Server hostname not known for key '$key'."
