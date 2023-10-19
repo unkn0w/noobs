@@ -19,6 +19,8 @@ cp "$SERVICE_FILE" "${SERVICE_FILE}.bak"
 # dodanie poprawki do pliku
 sed -i '$d' "$SERVICE_FILE"
 cat <<EOF >>"$SERVICE_FILE"
+    --cluster-cidr=10.42.0.0/16,2001:cafe:42:0::/56 \\
+    --service-cidr=10.43.0.0/16,2001:cafe:42:1::/112 \\
     --kubelet-arg=feature-gates=KubeletInUserNamespace=true \\
     --kube-controller-manager-arg=feature-gates=KubeletInUserNamespace=true \\
     --kube-apiserver-arg=feature-gates=KubeletInUserNamespace=true \\
