@@ -38,8 +38,6 @@ TimeoutStartSec=0
 Restart=always
 RestartSec=5s
 ExecStartPre=/bin/sh -xc '! /usr/bin/systemctl is-enabled --quiet nm-cloud-setup.service'
-ExecStartPre=-/sbin/modprobe br_netfilter
-ExecStartPre=-/sbin/modprobe overlay
 ExecStart=/usr/local/bin/k3s \\
     server \\
     --cluster-cidr=10.42.0.0/16,2001:cafe:42:0::/56 \\
