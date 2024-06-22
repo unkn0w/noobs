@@ -30,6 +30,9 @@ wget https://github.com/WireGuard/wireguard-go/archive/refs/heads/master.zip
 unzip -qq master.zip  -d wireguard-go
 rm master.zip
 
+# Ensure directory does not exists
+rm -rf "/tmp/wireguard-tools"
+
 # Clone the Wireguard tools repository
 git -c http.sslVerify=false clone https://git.zx2c4.com/wireguard-tools /tmp/wireguard-tools
 
@@ -58,8 +61,10 @@ tar -xf $GO_ARCHIVE_OUTPUT -C $GO_INSTALL_PATH
 # Add PATH env
 if [ $SUDO_USER ] && [ $SUDO_USER != "root" ] ; then
   export PROFILE_PATH="/home/$SUDO_USER/.profile"
+  export HOME_PATH="/home/$SUDO_USER"
 else
   export PROFILE_PATH="$HOME/.profile"
+  export HOME_PATH="$HOME"
 fi
 
 # If Go PATH export doesn't exist, add it
@@ -68,7 +73,7 @@ if ! grep 'export PATH=$PATH:/usr/local/go/bin' $PROFILE_PATH > /dev/null ; then
   echo 'export PATH=$PATH:/usr/local/go/bin' >> $(ls $PROFILE_PATH)
 fi
 
-source ~/.profile
+source $PROFILE_PATH
 
 # Build and install Wireguard tools
 cd /tmp/wireguard-go/wireguard-go-master
@@ -103,8 +108,8 @@ curl -s -d "mode=wireguard-client&srv=$srv&privkey=$cliprivkey&pubkey=$pubkey" h
 systemctl stop "wg-quick@wg0"
 sed -i '/RETRIES=infinity/{n;s/.*/Environment=WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1/}' /lib/systemd/system/wg-quick@.service
 systemctl daemon-reload
-echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> ~/.profile
-echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> ~/.bashrc
+echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> $PROFILE_PATH
+echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> $HOME_PATH/.bashrc
 systemctl start "wg-quick@wg0"
 
 # Generate a QR code for the client configuration
