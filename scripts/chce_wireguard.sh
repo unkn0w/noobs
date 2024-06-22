@@ -2,6 +2,7 @@
 # Autor skryptu: Andrzej Szczepaniak
 # Współautor: Jakub 'unknow' Mrugalski
 # Aktualizacja: Dawid Kasza
+# Aktualizacja2: Michał Skórcz
 set -e
 
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
