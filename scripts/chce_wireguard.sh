@@ -4,6 +4,12 @@
 # Aktualizacja: Dawid Kasza
 set -e
 
+# Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
+if [[ $EUID -ne 0 ]]; then
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_wireguard.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
+   exit 1
+fi
+
 # Backup the current resolv.conf file
 cp /etc/resolv.conf /etc/resolv.back
 
