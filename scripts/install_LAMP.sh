@@ -1,6 +1,6 @@
 #!/bin/bash
 apk update
-apk add apache2 apache2-utils php81-apache2 php81-mysqli php81-bcmath php81-simplexml php81-zip php81-pear php81-xml php81-curl php81-mbstring php81-pdo_mysql php81-pdo 
+apk add apache2 apache2-utils php83-apache2 php83-mysqli php83-bcmath php83-simplexml php83-zip php83-pear php83-xml php83-curl php83-mbstring php83-pdo_mysql php83-pdo
 rc-update add apache2
 
 chown -R frog:frog /var/www/html
