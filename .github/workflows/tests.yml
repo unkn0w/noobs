@@ -6,7 +6,7 @@ name: CI
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [ frog ]
   pull_request:
     paths:
       - scripts/*.sh
@@ -19,7 +19,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: alpine-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
