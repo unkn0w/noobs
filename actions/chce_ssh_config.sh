@@ -2,7 +2,7 @@
 # Create ssh config for easy connection with mikr.us
 # Autor: Radoslaw Karasinski, Artur 'stefopl' Stefanski
 # Usage: you can pass following arguments:
-#   --mikrus MIKRUS_NAME (i.e. 'X123')
+#   --mikrus MIKRUS_NAME (i.e. 'name123')
 #   --user USERNAME (i.e. 'root')
 #   --port PORT_NUMBER (to configure connection for non mikr.us host)
 #   --host HOSTNAME (to configure connection for non mikr.us host)
@@ -34,85 +34,20 @@ fi
 port="${port:-22}"
 user="${user:-root}"
 
-declare -A hosts=(
-  ["e"]="srv07"
-  ["f"]="srv08"
-  ["g"]="srv09"
-  ["h"]="srv10"
-  ["i"]="srv11"
-  ["j"]="srv12"
-  ["k"]="srv14"
-  ["l"]="srv15"
-  ["m"]="srv16"
-  ["n"]="srv17"
-  ["o"]="srv18"
-  ["p"]="srv19"
-  ["r"]="srv20"
-  ["s"]="srv21"
-  ["t"]="srv22"
-  ["u"]="srv23"
-  ["w"]="srv24"
-  ["z"]="srv25"
-  ["x"]="maluch"
-  ["y"]="maluch2"
-  ["v"]="maluch3"
-  ["a"]="srv26"
-  ["b"]="srv27"
-  ["c"]="srv29"
-  ["d"]="srv28"
-)
-
 if [ -n "$mikrus" ]; then
-    if ! [[ "$mikrus" =~ [a-z][0-9]{3}$ ]]; then
+    if ! [[ "$mikrus" =~ ^[a-z]+[0-9]+$ ]]; then
         echo "ERROR: --mikrus parameter is not valid!"
         exit 3
     fi
 
-    port="$(( 10000 + $(echo $mikrus | grep -o '[0-9]\+') ))"
-
-    key="$(echo $mikrus | grep -o '[^0-9]\+' )"
-
-    url="https://mikr.us/serwery.txt"
-
-    servers=""
-
-    if command -v curl &> /dev/null; then
-            http_code=$(curl -s -o /dev/null -w "%{http_code}" "$url")
-            content_type=$(curl -sI "$url" | grep -i "Content-Type" | cut -d ' ' -f2)
-
-            if [ "$http_code" == "200" ] && [[ "$content_type" == "text/"* ]]; then
-                servers=$(curl -s "$url")
-            fi
-        elif command -v wget &> /dev/null; then
-            http_code=$(wget --spider --server-response "$url" 2>&1 | grep "HTTP/" | awk '{print $2}')
-            content_type=$(wget --spider --server-response "$url" 2>&1 | grep -i "Content-Type" | awk '{print $2}')
-
-            if [ "$http_code" == "200" ] && [[ "$content_type" == "text/"* ]]; then
-                servers=$(wget -q -O - "$url")
-            fi
-        else
-            echo "ERROR: Neither 'curl' nor 'wget' were found."
-            exit 1
-        fi
-
-    if [ -n "$servers" ]; then
-        unset hosts
-        declare -A hosts
-        while IFS='=' read -r server value; do
-            hosts["$server"]="$value"
-        done <<< "$servers"
-    else
-      echo "Failed to download server list. Using hardcoded list."
-    fi
-
-    echo $hosts
-
-    host="${hosts[$key]}"
-    if [ -z "$host" ]; then
-        echo "ERROR: Server hostname not known for key '$key'."
+    number_part=$(echo "$mikrus" | grep -o '[0-9]\+')
+    if [ -z "$number_part" ]; then
+        echo "ERROR: Could not extract number from mikrus name!"
         exit 4
     fi
-    host="$host.mikr.us"
+
+    port=$((10000 + number_part))
+    host="$mikrus.mikrus.xyz"
 fi
 
 if [ -n "$possible_ssh_param" ]; then
