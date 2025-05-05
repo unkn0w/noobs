@@ -3,14 +3,14 @@ name: Test modified scripts
 on:
   push:
     branches:
-      - main
+      - frog
   pull_request:
     branches:
-      - main
+      - frog
 
 jobs:
   run-test-scripts:
-    runs-on: ubuntu-latest
+    runs-on: alpine-latest
     steps:
       - name: Checkout generator repository
         uses: actions/checkout@v1
