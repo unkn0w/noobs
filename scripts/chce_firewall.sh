@@ -6,7 +6,7 @@
 #
 
 sudo apt update
-sudo apt install ufw
+sudo apt install ufw ipset
 
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
