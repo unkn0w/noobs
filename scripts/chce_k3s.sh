@@ -3,9 +3,36 @@
 # Autor: Maciej Loper @2023.05
 # Edytowane przez: Andrzej Szczepaniak @2023.11
 # Edytowane, ze wzgledu na to, ze dual-stack nie dziala na najnowszej wersji K3s
+# Edytowane przez: TORGiren @2025.06
+# Edytowane, dodanie możliwości wyboru wersji K3s i ustawienie domyślnej wersji na "stable"
+
+VERSION=${1:-"stable"}
+
+function get_release() {
+    local version="$1"
+    # Sprawdzenie, czy wersja zawiera "+k3s" (np. "1.27.6+k3s1"). Jeśli tak, to zwróć ją bez zmian.
+    if [[ "$version" =~ \+k3s ]]; then
+        echo "$version"
+        return
+    fi
+    local latest_version=$(curl -s https://update.k3s.io/v1-release/channels | python3 -c "import sys, json; print(list(filter(lambda x: x['id'] == '$version',json.load(sys.stdin)['data']))[0]['latest'])" 2>/dev/null)
+    if [[ -z "$latest_version" ]]; then
+            echo "Error: Version '$version' not found in release channels."
+            exit 1
+    fi
+    echo "$latest_version"
+}
+
+RELEASE=$(get_release "$VERSION")
+if [[ $? -ne 0 ]]; then
+    echo "$RELEASE"
+    exit 1
+fi
+
+echo "Instalacja K3s w wersji: $RELEASE"
 
 # pobranie binarki K3s w wersji 1.27.6+k3s1
-wget -O /usr/local/bin/k3s https://github.com/k3s-io/k3s/releases/download/v1.27.6%2Bk3s1/k3s
+wget -O /usr/local/bin/k3s "https://github.com/k3s-io/k3s/releases/download/$RELEASE/k3s"
 
 # nadanie uprawnien binarce k3s
 chmod +x /usr/local/bin/k3s
