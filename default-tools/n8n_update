@@ -1,0 +1,8 @@
+#!/bin/bash
+docker pull n8nio/n8n:latest
+docker rm -f n8n
+if [ -f /root/.n8n/database.sqlite ]; then
+    n8n_install
+else
+    n8n_install_postgres
+fi

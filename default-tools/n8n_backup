@@ -1,0 +1,110 @@
+#!/bin/bash
+# Skrypt tworzy backup N8N w środowisku Mikrusowym
+# Autor: Jakub 'unknow' Mrugalski
+
+# ile ostatnich backupów trzymać?
+LASTBACKUPS=7
+
+# Kolory
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+NC='\033[0m' # No Color
+
+# Funkcje pomocnicze
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_action() {
+    echo -e "${YELLOW}🔧 $1${NC}"
+}
+
+print_info() {
+    echo -e "$1"
+}
+
+# Sprawdzenie czy jest config N8N
+if [ ! -d "/root/.n8n" ]; then
+    print_error "Nie widzę zainstalowanego N8N → użyj: n8n_install lub n8n_install_postgres"
+    exit 1
+fi
+
+# Sprawdzenie/utworzenie katalogu na backup
+if [ ! -d /backup/n8n/ ]; then
+    print_action "Tworzę katalog /backup/n8n/"
+    mkdir -p /backup/n8n/
+fi
+
+# Jeśli nie przekazano parametru RUN, konfiguruj cron
+if [ "$1" != "RUN" ]; then
+    randomMinute=$((RANDOM % 60))
+    print_action "Konfiguruję automatyczny backup (godzina 4:${randomMinute})"
+    echo "${randomMinute} 4 * * * root /bin/n8n_backup RUN >/dev/null 2>&1" >/etc/cron.d/n8n_backuper
+    print_success "Automatyczny skrypt backupu został aktywowany"
+    exit 0
+fi
+
+find /backup/n8n/ -name "*.gz" -type f -mtime +${LASTBACKUPS} -delete
+
+
+print_info "Rozpoczynam backup N8N..."
+
+# Sprawdzenie czy n8n jest uruchomione
+if ! docker ps -a --format "table {{.Names}}" | grep -q ^n8n; then
+    print_error "N8N nie jest uruchomione!"
+    exit 1
+fi
+
+currentDate=$(date +%Y%m%d)
+print_info "Data backupu: ${currentDate}"
+
+# Backup SQLite
+if [ -f /root/.n8n/database.sqlite ]; then
+    print_action "Wykryto bazę SQLite - tworzę backup..."
+    
+    # Sprawdzenie czy mamy sqlite3
+    if ! command -v sqlite3 &> /dev/null; then
+        print_action "sqlite3 nie jest zainstalowany - instaluję..."
+        if apt update && apt install -y sqlite3; then
+            print_success "sqlite3 zostało zainstalowane"
+        else
+            print_error "Nie udało się zainstalować sqlite3"
+            exit 1
+        fi
+    fi
+    
+    print_action "Wykonuję backup bazy SQLite..."
+    if sqlite3 /root/.n8n/database.sqlite ".backup /backup/n8n/${currentDate}_database.sqlite"; then
+        print_action "Kompresuje plik backup..."
+        gzip /backup/n8n/${currentDate}_database.sqlite
+        print_success "Backup SQLite został utworzony: ${currentDate}_database.sqlite.gz"
+    else
+        print_error "Nie udało się utworzyć backupu SQLite"
+        exit 1
+    fi
+fi
+
+# Backup PostgreSQL
+if docker ps -a --format "table {{.Names}}" | grep -q ^pg_n8n; then
+    print_action "Wykryto PostgreSQL - tworzę backup..."
+    if docker exec pg_n8n pg_dump -U n8n -d n8n | gzip >/backup/n8n/${currentDate}_database.sql.gz; then
+        print_success "Backup PostgreSQL został utworzony: ${currentDate}_database.sql.gz"
+    else
+        print_error "Nie udało się utworzyć backupu PostgreSQL"
+        exit 1
+    fi
+fi
+
+# Sprawdzenie rozmiaru pliku backup
+backup_file=$(ls -la /backup/n8n/${currentDate}_database.* 2>/dev/null | head -1)
+if [ -n "$backup_file" ]; then
+    file_size=$(echo "$backup_file" | awk '{print $5}')
+    print_info "Rozmiar pliku backup: $(numfmt --to=iec $file_size)"
+fi
+
+print_success "Backup N8N zakończony pomyślnie!"

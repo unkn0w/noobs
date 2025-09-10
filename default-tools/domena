@@ -1,0 +1,200 @@
+#!/bin/bash
+# Skrypt do dodawania domen do portów webowych
+# Autor: Jakub
+# Wersja: 2.0
+
+# Kolory
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NORMAL='\033[0m'
+
+# Funkcje pomocnicze
+print_success() {
+    echo -e "${GREEN}✓ $1${NORMAL}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NORMAL}" >&2
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠ $1${NORMAL}"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ $1${NORMAL}"
+}
+
+show_usage() {
+    echo -e "${BLUE}UŻYCIE:${NORMAL}"
+    echo "  $0 [OPCJE] [DOMENA] [PORT]"
+    echo ""
+    echo -e "${BLUE}PRZYKŁADY:${NORMAL}"
+    echo "  $0 example.com 8080        # Dodaje domenę example.com na port 8080"
+    echo "  $0 8080                    # Dodaje port 8080 i generuje losową domenę"
+    echo "  $0 example.com             # Dodaje domenę example.com na port 80 na IPv6 (domyślny)"
+    echo "  $0 -h                      # Wyświetla tę pomoc"
+    echo ""
+    echo -e "${BLUE}OPCJE:${NORMAL}"
+    echo "  -h, --help    Wyświetla tę pomoc"
+    echo "  -k PATH       Ścieżka do klucza API (domyślnie: /klucz_api)"
+    echo ""
+    echo -e "${BLUE}WYMAGANIA:${NORMAL}"
+    echo "  - Plik z kluczem API (domyślnie /klucz_api)"
+    echo "  - curl i jq zainstalowane"
+    echo "  - Serwis musi być uruchomiony na podanym porcie"
+}
+
+# Domyślne wartości
+API_KEY_FILE="/klucz_api"
+PORT=80
+DOMAIN=""
+
+# Parsowanie argumentów
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -k)
+            API_KEY_FILE="$2"
+            shift 2
+            ;;
+        -*)
+            print_error "Nieznana opcja: $1"
+            show_usage
+            exit 1
+            ;;
+        *)
+            if [[ "$1" =~ ^[0-9]+$ ]]; then
+                # To jest port
+                PORT=$1
+                if [[ -z "$DOMAIN" ]]; then
+                    DOMAIN="-"
+                fi
+            else
+                # To jest domena
+                DOMAIN=$1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Sprawdzenie klucza API
+if [ ! -f "$API_KEY_FILE" ]; then
+    print_error "Brak klucza API w pliku: $API_KEY_FILE"
+    print_info "Użyj opcji -k aby podać inną ścieżkę do klucza"
+    exit 1
+fi
+
+if [ ! -r "$API_KEY_FILE" ]; then
+    print_error "Nie można odczytać pliku z kluczem API: $API_KEY_FILE"
+    exit 1
+fi
+
+# Sprawdzenie wymaganych narzędzi
+missing_tools=()
+
+if ! command -v curl &>/dev/null; then
+    missing_tools+=("curl")
+fi
+
+if ! command -v jq &>/dev/null; then
+    missing_tools+=("jq")
+fi
+
+if [ ${#missing_tools[@]} -gt 0 ]; then
+    print_warning "Brakuje narzędzi: ${missing_tools[*]}"
+    print_info "Próbuję zainstalować..."
+    
+    if [ "$EUID" -ne 0 ]; then
+        print_error "Potrzebuję uprawnień root do instalacji pakietów"
+        print_info "Uruchom jako root lub zainstaluj ręcznie: ${missing_tools[*]}"
+        exit 1
+    fi
+    
+    apt update && apt install -y "${missing_tools[@]}"
+    
+    if [ $? -eq 0 ]; then
+        print_success "Narzędzia zostały zainstalowane"
+    else
+        print_error "Nie udało się zainstalować wymaganych narzędzi"
+        exit 1
+    fi
+fi
+
+# Wczytanie klucza API
+apikey=$(head -n1 "$API_KEY_FILE" | tr -d '\n\r')
+if [[ -z "$apikey" ]]; then
+    print_error "Klucz API jest pusty"
+    exit 1
+fi
+
+hostname=$(hostname)
+if [[ -z "$hostname" ]]; then
+    print_error "Nie mogę pobrać nazwy hosta"
+    exit 1
+fi
+
+# Jeśli nie podano domeny, ustaw na "-"
+if [[ -z "$DOMAIN" ]]; then
+    DOMAIN="-"
+fi
+
+# Walidacja portu
+if [[ ! "$PORT" =~ ^[0-9]+$ ]] || [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+    print_error "Port musi być liczbą z zakresu 1-65535"
+    exit 1
+fi
+
+# Sprawdzenie czy coś słucha na porcie
+if ! curl -s --connect-timeout 5 --max-time 10 localhost:$PORT >/dev/null 2>&1; then
+    print_error "Nic nie odpowiada na porcie $PORT"
+    print_info "Upewnij się, że serwis jest uruchomiony na tym porcie"
+    exit 2
+fi
+
+print_success "Port $PORT jest dostępny"
+
+# Wyświetlenie podsumowania
+if [ "$DOMAIN" != "-" ]; then
+    print_info "Dodaję domenę: $DOMAIN na port: $PORT (host: $hostname)"
+else
+    print_info "Dodaję port: $PORT bez domeny (host: $hostname)"
+fi
+
+# Wywołanie API
+response=$(curl -s -d "srv=${hostname}&key=${apikey}&domain=${DOMAIN}&port=${PORT}" https://api.mikr.us/domain)
+curl_exit_code=$?
+
+if [ $curl_exit_code -ne 0 ]; then
+    print_error "Błąd połączenia z API (kod: $curl_exit_code)"
+    exit 3
+fi
+
+# Sprawdzenie czy odpowiedź jest poprawnym JSON-em
+if ! echo "$response" | jq empty 2>/dev/null; then
+    print_error "Otrzymano niepoprawną odpowiedź z API:"
+    echo "$response"
+    exit 4
+fi
+
+# Wyświetlenie sformatowanej odpowiedzi
+print_success "Odpowiedź z API:"
+echo "$response" | jq -C
+
+# Sprawdzenie statusu w odpowiedzi (jeśli API zwraca status)
+status=$(echo "$response" | jq -r '.status // .success // empty' 2>/dev/null)
+if [[ "$status" == "error" ]] || [[ "$status" == "false" ]]; then
+    error_msg=$(echo "$response" | jq -r '.message // .error // "Nieznany błąd"' 2>/dev/null)
+    print_error "Błąd API: $error_msg"
+    exit 5
+elif [[ "$status" == "success" ]] || [[ "$status" == "true" ]] || [[ "$status" == "ok" ]]; then
+    print_success "Operacja zakończona pomyślnie!"
+fi
+
+exit 0
