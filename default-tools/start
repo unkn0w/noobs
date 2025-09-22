@@ -41,10 +41,13 @@ while true; do
     esac
 done
 
-czy_mikrus_pro=$(curl -d "key=$(cat /klucz_api)&srv=$(hostname | tr -d .mikr.us)" -s https://api.mikr.us/info  | python3 -c "import json;print(json.loads(input())['mikrus_pro'])")
+czy_mikrus_pro=$(curl -d "key=$(cat /klucz_api)&srv=$(hostname | tr -d .mikr.us)" \
+  -s https://api.mikr.us/info  \
+  | python3 -c "import json;print(json.loads(input()).get('mikrus_pro', 'nie'))")
 server_type=`cat /etc/hostname | cut -c -1 `
 # serwery klasy 1.0 nie obsługują dockera chyba że MikrusPRO jest aktywne
-if ! [[ ( "$server_type" = "x" || "$server_type" = "y" ) && "$czy_mikrus_pro" = "nie" ]]; then 
+if ! [[ ( "$server_type" = "x" || "$server_type" = "y" ) && "$czy_mikrus_pro" = "nie" ]];
+then
     echo -e "\n\033[1mDocker\033[0m"
     echo "Chcesz zainstalować Dockera?"
     while true; do
