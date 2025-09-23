@@ -1,0 +1,71 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+    echo "Użycie: $0 plik_archiwum"
+    exit 1
+fi
+
+file="$1"
+extension="${file##*.}"
+full_name="${file,,}"  # konwersja na małe litery dla łatwiejszego porównywania
+
+install_package() {
+    local package=$1
+    echo "Instaluję pakiet $package..."
+    sudo apt update && sudo apt install -y "$package"
+}
+
+# Sprawdzenie czy plik istnieje
+if [ ! -f "$file" ]; then
+    echo "Plik $file nie istnieje!"
+    exit 1
+fi
+
+case $full_name in
+    *.tar.gz|*.tgz)
+        if ! command -v tar &> /dev/null; then
+            install_package tar
+        fi
+        tar -zxvf "$file"
+        ;;
+    *.tar.bz2|*.tbz2)
+        if ! command -v tar &> /dev/null; then
+            install_package tar
+        fi
+        tar -jxvf "$file"
+        ;;
+    *.tar)
+        if ! command -v tar &> /dev/null; then
+            install_package tar
+        fi
+        tar -xvf "$file"
+        ;;
+    *.zip)
+        if ! command -v unzip &> /dev/null; then
+            install_package unzip
+        fi
+        unzip "$file"
+        ;;
+    *.rar)
+        if ! command -v unrar &> /dev/null; then
+            install_package unrar
+        fi
+        unrar x "$file"
+        ;;
+    *.xz)
+        if ! command -v xz &> /dev/null; then
+            install_package xz-utils
+        fi
+        xz -d "$file"
+        ;;
+    *.7z)
+        if ! command -v 7z &> /dev/null; then
+            install_package p7zip-full
+        fi
+        7z x "$file"
+        ;;
+    *)
+        echo "Nie znam tego formatu kompresji"
+        exit 1
+        ;;
+esac

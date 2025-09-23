@@ -1,0 +1,77 @@
+#!/bin/bash
+
+set -u
+
+if [[ "$UID" != "0" ]]; then
+	echo "Musisz wykonać ten skrypy jako root!"
+	echo "Użyj: sudo $0"
+	exit
+fi
+
+echo "Witaj!"
+echo "Ten program pomoże Ci w początkowym skonfigurowaniu twojego nowego VPS-a!"
+echo -e "\033[1mStrefa czasowa\033[0m"
+echo "Chcesz by zmienić strefę czasową na polską?"
+while true; do
+    read -r -p "(T/N): " answer
+    case $answer in
+        [YyTt]*) timedatectl set-timezone Europe/Warsaw; break;;
+        [Nn]*) echo nie; break;;
+        *) echo "Wpisz Tak lub Nie (T/N)";
+    esac
+done
+
+echo -e "\n\n\033[1mWybierz edytor, jeżeli nie wiesz co wybrać wpisz 1\033[0m"
+select-editor
+echo -e "\n\033[1mPowłoka systemowa\033[0m"
+echo "Chcesz zmienić powłokę systemową (shell) na zsh? (Wraz z OhMyZsh)"
+while true; do
+    read -r -p "(T/N): " answer
+    case $answer in
+        [YyTt]*)
+            if ! [ -d /opt/noobs ]; then
+                echo "Nie masz skryptów NOOBS, instaluję..."
+                curl -s https://noobs.mikr.us | bash
+            fi;
+            echo "Instaluję zsh..."
+            /opt/noobs/scripts/chce_zsh.sh
+            break;;
+        [Nn]*) break;;
+        *) echo "Wpisz Tak lub Nie (T/N)";
+    esac
+done
+
+czy_mikrus_pro=$(curl -d "key=$(cat /klucz_api)&srv=$(hostname | tr -d .mikr.us)" \
+  -s https://api.mikr.us/info  \
+  | python3 -c "import json;print(json.loads(input()).get('mikrus_pro', 'nie'))")
+server_type=`cat /etc/hostname | cut -c -1 `
+# serwery klasy 1.0 nie obsługują dockera chyba że MikrusPRO jest aktywne
+if ! [[ ( "$server_type" = "x" || "$server_type" = "y" ) && "$czy_mikrus_pro" = "nie" ]];
+then
+    echo -e "\n\033[1mDocker\033[0m"
+    echo "Chcesz zainstalować Dockera?"
+    while true; do
+        read -r -p "(T/N): " answer
+        case $answer in
+            [YyTt]*)
+                curl -fsSL https://get.docker.com | sh -
+                break;;
+            [Nn]*) break;;
+            *) echo "Wpisz Tak lub Nie (T/N)";
+        esac
+    done
+
+fi;
+
+echo -e "\n\033[1mAktualizacja\033[0m"
+echo "Czy chcesz przeprowadzić pełną aktualizację systemu?"
+while true; do
+    read -r -p "(T/N): " answer
+    case $answer in
+        [YyTt]*)
+            apt-get update && apt-get upgrade -y
+            break;;
+        [Nn]*) break;;
+        *) echo "Wpisz Tak lub Nie (T/N)";
+    esac
+done

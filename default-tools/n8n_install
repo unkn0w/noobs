@@ -1,0 +1,144 @@
+#!/bin/bash
+#
+# Skrypt instalujący aplikację N8N
+# Dostosowany do użycia w środowisku Mikrusa - https://mikr.us
+#
+
+MINIMALRAM=1000
+
+# kolorki
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NORMAL='\033[0m'
+
+availableMemory=$(free -m | awk '/^(Mem|Pam)/ {print $2}')
+
+if [ ${availableMemory} -gt ${MINIMALRAM} ]; then
+    echo -e "${GREEN}System ma ponad ${MINIMALRAM}MB pamięci RAM${NORMAL}"
+else
+    echo -e "${RED}System ma mniej niż ${MINIMALRAM}MB pamięci RAM - to nie zadziała...${NORMAL}"
+    exit 2
+fi
+
+# wczytanie konfiguracji z pliku (jeśli istnieje)
+CONFIG_FILE="/root/.n8n/mikrus.cfg"
+if [ -f "$CONFIG_FILE" ]; then
+    echo -e " ${GREEN}> Wczytuję konfigurację z pliku${NORMAL}"
+    source "$CONFIG_FILE"
+    saved_port="$PORT"
+    saved_domain="$DOMAIN"
+fi
+
+# alternatywny numer portu
+if [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+    portNR=$1
+    echo -e " ${GREEN}> Używam podanego portu: ${portNR}${NORMAL}"
+elif [ -n "$saved_port" ]; then
+    portNR="$saved_port"
+    echo -e " ${GREEN}> Używam portu z pliku konfiguracyjnego: ${portNR}${NORMAL}"
+else
+    portNR=$(hostname -f | grep -Eo '[0-9]+')
+    portNR=$[20000+$portNR]
+    echo -e " ${GREEN}> Używam domyślnego portu: ${portNR}${NORMAL}"
+fi
+
+# mamy dockera?
+if command -v docker &> /dev/null; then
+    echo -e " ${GREEN}> Docker jest zainstalowany${NORMAL}"
+else
+    echo -e " ${YELLOW}> Instaluję Dockera${NORMAL}"
+    curl -fsSL https://get.docker.com | sh -
+fi
+
+if [ ! -d ~/.n8n ]; then
+    echo -e " ${YELLOW}> Tworzę katalog domowy dla N8N${NORMAL}";
+    mkdir ~/.n8n
+    chown -R 1000:root ~/.n8n
+else
+    echo -e " ${GREEN}> Katalog domowy już istnieje - użyję go${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Uruchamiam kontener...${NORMAL}"
+
+eval $(curl -s -k -6 https://info.mikr.us)
+
+# wsparcie dla alternatywnej domeny do webhooków
+if [ -n "$2" ] && [[ "$2" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    domain="$2"
+    echo -e " ${GREEN}> Używam podanej domeny: ${domain}${NORMAL}"
+elif [ -n "$saved_domain" ] && [ -z "$1" ] && [ -z "$2" ]; then
+    domain="$saved_domain"
+    echo -e " ${GREEN}> Używam domeny z pliku konfiguracyjnego: ${domain}${NORMAL}"
+else
+    eval $(curl -s -k -6 https://info.mikr.us)
+    domain="${info_imie_id}-${portNR}.wykr.es"
+    echo -e " ${GREEN}> Używam domyślnej domeny: ${domain}${NORMAL}"
+fi
+
+# zapisanie konfiguracji do pliku
+echo -e " ${GREEN}> Zapisuję konfigurację do pliku${NORMAL}"
+cat > "$CONFIG_FILE" << EOF
+PORT=${portNR}
+DOMAIN=${domain}
+EOF
+
+# porządki
+docker rm -f n8n >/dev/null 2>&1
+docker rm -f watchtower_n8n >/dev/null 2>&1
+docker pull n8nio/n8n:latest
+docker pull containrrr/watchtower
+
+docker run -itd \
+  --memory=$[$availableMemory-100]m \
+  --memory-swap=$[$availableMemory-100]m \
+  --memory-swappiness=0 \
+  --name n8n \
+  -p ${portNR}:5678 \
+  -v ~/.n8n:/home/node/.n8n \
+  --restart unless-stopped \
+  -e N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true \
+  -e N8N_RUNNERS_ENABLED=true \
+  -e N8N_RUNNERS_MAX_PAYLOAD=536870912 \
+  -e DB_SQLITE_POOL_SIZE=2 \
+  -e N8N_DIAGNOSTICS_ENABLED=false \
+  -e N8N_METRICS=false \
+  -e EXECUTIONS_DATA_PRUNE=true \
+  -e EXECUTIONS_DATA_MAX_AGE=336 \
+  -e EXECUTIONS_DATA_PRUNE_MAX_COUNT=2000 \
+  -e NODE_OPTIONS=--max-old-space-size=$[$availableMemory-200] \
+  -e GENERIC_TIMEZONE="Europe/Warsaw" \
+  -e WEBHOOK_URL=https://${domain} \
+  n8nio/n8n:latest
+
+docker run -d \
+  --name watchtower_n8n \
+  --restart unless-stopped \
+  -e WATCHTOWER_POLL_INTERVAL=259200 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower \
+  n8n --cleanup
+
+echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
+
+cnt=25
+
+while [ -z "$(docker logs n8n | grep accessible)" ]; do
+  if [ $cnt -eq 0 ]; then
+    echo -e "${RED}Coś nie działa :(${NORMAL}"
+    exit 2
+  fi
+  echo -n "."
+  sleep 7
+  cnt=$[$cnt-1]
+done
+
+echo -e "\n\n"
+
+# aktywujemy backup dla usera
+/bin/n8n_backup
+
+echo -e "\n\n${GREEN}Twoja instancja N8N jest pod adresem:${NORMAL}\n"
+echo -e "https://${domain}\n\n"
+
+echo -e "\n${NORMAL}Gdy będziesz chciał zaktualizować swoją instancję użyj ${YELLOW}n8n_update${NORMAL}\n\n"
