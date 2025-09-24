@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dodanie do aktualnego $PS1 statusu repozytorium gita bieżącego katalogu
-# Autor: Tomasz Wiśniewski, krystofair @ 2025-09-22
+# Autorzy: Tomasz Wiśniewski, krystofair @ 2025-09-22
 
 echo "Jeśli twoja wybrana powłoka nie zadziała, to spróbuj zainstalować do 'bash'."
 sleep 1
@@ -179,11 +179,70 @@ install -m 0644 $GIT_PROMPT_FILE $(dirname $install_path)/$FILENAME
 
 if test -e $install_path && test -n "$(cat $install_path | grep __git_ps1)"
 then
-  echo "Masz to już zainstalowane dla takich wyborów."
+  echo "Masz to już zainstalowane."
   unset ch_shell
   unset installation_type
   unset install_path
   exit 0
+fi
+
+# Wykorzystuje "features" z globalnego kontekstu
+choose_ps1_format() {
+  echo "Możliwe formaty, \[\033... to oznaczenia kolory" 1>&2
+  FORMATS=$'
+1.(<GIT-BRANCH-NAME> <GIT-STATUS>)[<USER>@<HOST>] <PWD><ONL>\$
+2.(<GIT-BRANCH-NAME> <GIT-STATUS>) [<USER>@<HOST>] <PWD><ONL>\$
+3.<USER>@<HOST> <PWD> (<GIT-BRANCH-NAME> <GIT-STATUS>)<ONL>\$
+4.<USER>@<HOST> \\[\\033[33m\\]<PWD>\\[\\033[00m\\] (<GIT-BRANCH-NAME> <GIT-STATUS>)<ONL>\$
+5.<USER>@<HOST> \\[\\033[33m\\]<PWD>\\[\\033[00m\\] <GIT-BRANCH-NAME> <GIT-STATUS><ONL>\$
+'
+  echo "$FORMATS" 1>&2
+  read -p "Wybierz format: " format_nr
+  case $format_nr in
+    1|2|3|4|5) : ;;
+    *) echo "Niepoprawny wybor." 1>&2; return -1 ;;
+  esac
+  format=$(echo "$FORMATS" | grep -F $format_nr.)
+  format=${format##??}
+  read -p "Czy chcesz mieć znak zachęty w nowej linii? Y/n: " r
+  ONL=${r:-y}; unset r
+  if test "$ONL" = y;
+  then format=${format/"<ONL>"/\\n};
+  else format=${format/"<ONL>"/}
+  fi
+
+  unset FORMATS
+  unset ONL
+  unset DOT
+
+  #### BUILD PS1 FROM FORMAT ####
+  format=${format/"<USER>"/\\u}
+  format=${format/"<HOST>"/\\h}
+  format=${format/"<PWD>"/\\w}
+  format=${format/"<GIT-BRANCH-NAME>"/'$(__git_ps1 '}
+  # funkcja __git_ps1 polega na ilości przekazanych do niej parametrów.
+  # kolor chyba działa tylko przy jednym parametrze...
+  IS_GIT_DIRTYSTATE=$(echo $1 | grep 'GIT_PS1_SHOWDIRTYSTATE=y')
+  if test -n "$IS_GIT_DIRTYSTATE";
+  then format=${format/"<GIT-STATUS>"/'%s%s)'}
+  else format=${format/"<GIT-STATUS>"/'%s)'}
+  fi
+
+  echo $format
+  unset IS_GIT_DIRTYSTATE
+  unset format
+
+  return 0
+}
+
+if test $ch_shell = bash || test $ch_shell = csh
+then
+  new_ps1=$(choose_ps1_format)
+  if [[ ! $? -eq 0 ]]; then
+    echo "Wybrano zły format, nie robię nic, kończę."
+    echo "Uruchom mnie ponownie."
+    exit 0
+  fi
 fi
 
 echo "Dodaję nowe instrukcje do pliku $install_path"
@@ -194,7 +253,8 @@ echo "source $(dirname $install_path)/$FILENAME" >> $install_path
 echo 'fi' >> $install_path
 case $ch_shell in
   bash|csh)
-    echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n\$ \'' >> $install_path
+    echo $"export PS1='$new_ps1 '" >> $install_path
+    # echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n\$ \'' >> $install_path
   ;;
   zsh)
     echo $'setopt PROMPT_SUBST; PS1=\'[%n@%m %c$(__git_ps1 \" (%s)\")]\$ \'' >> $install_path
