@@ -195,11 +195,12 @@ choose_ps1_format() {
 3.<USER>@<HOST> <PWD> (<GIT-STATUS>)<ONL>$
 4.<USER>@<HOST> \\e[33m<PWD>\\e[00m (<GIT-STATUS>)<ONL>$
 5.<USER>@<HOST> \\e[33m<PWD>\\e[00m <GIT-STATUS><ONL>$
+6.<USER>@<HOST> \\e[33m<PWD>\\e[00m <GIT-STATUS><ONL><DATE>$
 '
   echo "$FORMATS" 1>&2
   read -p "Wybierz format: " format_nr
   case $format_nr in
-    1|2|3|4|5) : ;;
+    1|2|3|4|5|6) : ;;
     *) echo "Niepoprawny wybor." 1>&2; return -1 ;;
   esac
   format=$(echo "$FORMATS" | grep -F $format_nr.)
@@ -220,6 +221,10 @@ choose_ps1_format() {
   format=${format/"<HOST>"/\\h}
   format=${format/"<PWD>"/\\w}
   format=${format/"<GIT-STATUS>"/'$(__git_ps1 %s)'}
+  if test $format_nr -eq '6'
+  then
+    format=${format/"<DATE>"/'$(date +[%H:%M])'}
+  fi
 
   echo $format
   unset format
