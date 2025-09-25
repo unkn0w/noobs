@@ -183,18 +183,18 @@ then
   unset ch_shell
   unset installation_type
   unset install_path
-  exit 0
+  exit -1
 fi
 
 # Wykorzystuje "features" z globalnego kontekstu
 choose_ps1_format() {
-  echo "Możliwe formaty, \[\033... to oznaczenia kolory" 1>&2
+  echo "Możliwe formaty, \\e... to escape dla oznaczenia koloru" 1>&2
   FORMATS=$'
-1.(<GIT-BRANCH-NAME> <GIT-STATUS>)[<USER>@<HOST>] <PWD><ONL>\$
-2.(<GIT-BRANCH-NAME> <GIT-STATUS>) [<USER>@<HOST>] <PWD><ONL>\$
-3.<USER>@<HOST> <PWD> (<GIT-BRANCH-NAME> <GIT-STATUS>)<ONL>\$
-4.<USER>@<HOST> \\[\\033[33m\\]<PWD>\\[\\033[00m\\] (<GIT-BRANCH-NAME> <GIT-STATUS>)<ONL>\$
-5.<USER>@<HOST> \\[\\033[33m\\]<PWD>\\[\\033[00m\\] <GIT-BRANCH-NAME> <GIT-STATUS><ONL>\$
+1.(<GIT-STATUS>)[<USER>@<HOST>] <PWD><ONL>$
+2.(<GIT-STATUS>) [<USER>@<HOST>] <PWD><ONL>$
+3.<USER>@<HOST> <PWD> (<GIT-STATUS>)<ONL>$
+4.<USER>@<HOST> \\e[33m<PWD>\\e[00m (<GIT-STATUS>)<ONL>$
+5.<USER>@<HOST> \\e[33m<PWD>\\e[00m <GIT-STATUS><ONL>$
 '
   echo "$FORMATS" 1>&2
   read -p "Wybierz format: " format_nr
@@ -219,17 +219,9 @@ choose_ps1_format() {
   format=${format/"<USER>"/\\u}
   format=${format/"<HOST>"/\\h}
   format=${format/"<PWD>"/\\w}
-  format=${format/"<GIT-BRANCH-NAME>"/'$(__git_ps1 '}
-  # funkcja __git_ps1 polega na ilości przekazanych do niej parametrów.
-  # kolor chyba działa tylko przy jednym parametrze...
-  IS_GIT_DIRTYSTATE=$(echo $1 | grep 'GIT_PS1_SHOWDIRTYSTATE=y')
-  if test -n "$IS_GIT_DIRTYSTATE";
-  then format=${format/"<GIT-STATUS>"/'%s%s)'}
-  else format=${format/"<GIT-STATUS>"/'%s)'}
-  fi
+  format=${format/"<GIT-STATUS>"/'$(__git_ps1 %s)'}
 
   echo $format
-  unset IS_GIT_DIRTYSTATE
   unset format
 
   return 0
@@ -254,7 +246,7 @@ echo 'fi' >> $install_path
 case $ch_shell in
   bash|csh)
     echo $"export PS1='$new_ps1 '" >> $install_path
-    # echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n\$ \'' >> $install_path
+    # echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n$ \'' >> $install_path
   ;;
   zsh)
     echo $'setopt PROMPT_SUBST; PS1=\'[%n@%m %c$(__git_ps1 \" (%s)\")]\$ \'' >> $install_path
