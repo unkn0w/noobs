@@ -1,6 +1,7 @@
 # NOOBS - zestaw skryptów dla początkujących
+## Skrypty dla FROGów (Alpine)
 
-Skrypty przeznaczone są dla uzytkowników usługi [MIKR.US](https://mikr.us), pracujących w systemie Ubuntu 22.04, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa
+Skrypty przeznaczone są dla uzytkowników usługi [MIKR.US](https://mikr.us), pracujących w systemie Alpine, jednak większosć z nich powinna działać także poza środowiskiem Mikrusa.
 
 ## Instalacja
 
