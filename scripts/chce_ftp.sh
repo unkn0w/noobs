@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # FTP installation script
 # Authors: Mariusz 'maniek205' Kowalski
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Skrypt stawia najnowszą wersję VSCode Server
 # Autor: Jakub 'unknow' Mrugalski
 # Poprawki: Maciej Loper @2021-10

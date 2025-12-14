@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Download and install golang
 # official docs https://go.dev/doc/install
 # Author: Cloudziu

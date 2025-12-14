@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Jenkins na mikrusowym porcie
 # Autor: Maciej Loper, Radoslaw Karasinski, pablowyourmind
 # Refactored: noobs community (v2.0.0)

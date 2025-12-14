@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # asdf + ruby
 # Autor: Mikołaj Kamiński (mikolaj-kaminski.com)
 

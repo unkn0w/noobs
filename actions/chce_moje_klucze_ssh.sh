@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Author: Koliw (https://github.com/koliwbr/)
 # Platformy: all
 # Kompatybilne z serwerami frog

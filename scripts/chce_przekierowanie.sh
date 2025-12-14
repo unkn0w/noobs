@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Autor: Krzysztof Siek
 #Przekierowanie portów urządzeń zapiętych po vpn na publiczne port mikrusowe
 

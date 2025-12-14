@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # instalacja k3s (lLghtweight Kubernetes) na mikrusie
 # Autor: Maciej Loper @2023.05
 # Edytowane przez: Andrzej Szczepaniak @2023.11

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Michał Giza
 # Refactored: noobs community (v2.0.0)
 

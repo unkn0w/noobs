@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # NEXTCLOUD installation script
 # Autors: Mariusz 'maniek205' Kowalski, Marcin Wozniak
 # Refactored: noobs community (v2.0.0)

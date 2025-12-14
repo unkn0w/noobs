@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #Script created by Andrzej "Ferex" Szczepaniak
 #Thanks for Jakub "Unknow" Mrugalski, Marcin "y0rune" Wozniak, Mariusz "maniek205" Kowalski and Paweł aka "./lemon.sh" for help
 

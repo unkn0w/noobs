@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Instalator PostgreSQL
 # Author: Janszczyrek
 # Refactored: noobs community (v2.0.0)

@@ -8,23 +8,23 @@
 
 Przed napisaniem skryptu odpowiedz na pytania:
 
-| Pytanie | Przykład dla Gitea |
-|---------|-------------------|
-| Jakie pakiety są potrzebne? | git, mariadb-server |
-| Czy wymaga bazy danych? | Tak (MySQL/MariaDB/PostgreSQL/SQLite) |
-| Czy potrzebuje PHP? | Nie |
-| Jaki serwer WWW? | Wbudowany / Nginx jako reverse proxy |
-| Skąd pobrać aplikację? | https://dl.gitea.io/gitea/ |
-| Jak uruchomić jako usługę? | Systemd unit file |
-| Jakie porty? | 3000 (HTTP), 22 (SSH) |
-| Czy wymaga użytkownika systemowego? | Tak (git) |
+| Pytanie                             | Przykład dla Gitea                    |
+| ----------------------------------- | ------------------------------------- |
+| Jakie pakiety są potrzebne?         | git, mariadb-server                   |
+| Czy wymaga bazy danych?             | Tak (MySQL/MariaDB/PostgreSQL/SQLite) |
+| Czy potrzebuje PHP?                 | Nie                                   |
+| Jaki serwer WWW?                    | Wbudowany / Nginx jako reverse proxy  |
+| Skąd pobrać aplikację?              | https://dl.gitea.io/gitea/            |
+| Jak uruchomić jako usługę?          | Systemd unit file                     |
+| Jakie porty?                        | 3000 (HTTP), 22 (SSH)                 |
+| Czy wymaga użytkownika systemowego? | Tak (git)                             |
 
 ---
 
 ## 2. Struktura Skryptu
 
 ```bash
-#!/usr/bin/env bash
+#!/bin/bash
 # Instalator [NAZWA_SERWISU]
 # Autor: [TWOJE_IMIE]
 # Wersja: 1.0.0
@@ -168,15 +168,15 @@ msg_info "Dane zapisane w ${APP_NAME}_credentials.txt"
 
 ## 4. Mapowanie Typów Serwisów na Funkcje Biblioteczne
 
-| Typ serwisu | Funkcje do użycia |
-|-------------|-------------------|
-| **Aplikacja PHP** | `php_install_packages`, `php_fpm_create_pool`, `nginx_create_server_block` lub `apache_create_vhost` |
-| **Aplikacja Node.js** | `pkg_install nodejs npm`, `create_system_user`, usługa systemd |
-| **Aplikacja Python** | `pkg_install python3 python3-pip python3-venv`, `create_system_user` |
-| **Aplikacja Go** | `download_and_extract` (binary), `create_system_user` |
-| **Baza danych** | `add_repository_with_key`, `pkg_install`, `service_enable_now` |
-| **Kontener Docker** | `pkg_install docker.io`, `service_enable_now docker` |
-| **VPN/Sieć** | `config_set_value`, `config_append_if_missing`, `service_enable_now` |
+| Typ serwisu           | Funkcje do użycia                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Aplikacja PHP**     | `php_install_packages`, `php_fpm_create_pool`, `nginx_create_server_block` lub `apache_create_vhost` |
+| **Aplikacja Node.js** | `pkg_install nodejs npm`, `create_system_user`, usługa systemd                                       |
+| **Aplikacja Python**  | `pkg_install python3 python3-pip python3-venv`, `create_system_user`                                 |
+| **Aplikacja Go**      | `download_and_extract` (binary), `create_system_user`                                                |
+| **Baza danych**       | `add_repository_with_key`, `pkg_install`, `service_enable_now`                                       |
+| **Kontener Docker**   | `pkg_install docker.io`, `service_enable_now docker`                                                 |
+| **VPN/Sieć**          | `config_set_value`, `config_append_if_missing`, `service_enable_now`                                 |
 
 ---
 

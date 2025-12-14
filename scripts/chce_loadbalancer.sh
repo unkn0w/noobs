@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Skrypt sprawdza czy HAProxy jest zainstalowane i instaluje jezeli nie.
 # Nastepnie za pomocą kreatora tworzy kowa konfigurację load balancera.

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Dodanie do aktualnego $PS1 statusu repozytorium gita bieżącego katalogu
 # Autorzy: Tomasz Wiśniewski, krystofair @ 2025-09-22
 

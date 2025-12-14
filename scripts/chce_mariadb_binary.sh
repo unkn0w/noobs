@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #Script created by Andrzej "Ferex" Szczepaniak
 
 # Zaladuj biblioteke noobs

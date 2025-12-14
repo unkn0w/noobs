@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Instalacja przydatnych programow
 # Autor: Maciej Loper
 

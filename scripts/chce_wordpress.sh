@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Author: Rafal Masiarek <rafal@masiarek.pl>
 # Refactored: noobs community (v2.0.0)

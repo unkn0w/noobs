@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Instalacja MIKRUS-CLI
 # Autor: Artur Stefanski
 

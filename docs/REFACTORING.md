@@ -9,14 +9,14 @@
 ## 1. Podsumowanie Wykonawcze
 
 ### Statystyki zmian:
-| Metryka | Wartość |
-|---------|---------|
-| Zmodyfikowane pliki | 50 |
-| Linie usunięte | ~1109 |
-| Linie dodane | ~998 |
-| Nowe funkcje biblioteczne | 96 |
-| Rozmiar biblioteki | 1719 linii |
-| Naprawione problemy bezpieczeństwa | 7 |
+| Metryka                            | Wartość    |
+| ---------------------------------- | ---------- |
+| Zmodyfikowane pliki                | 50         |
+| Linie usunięte                     | ~1109      |
+| Linie dodane                       | ~998       |
+| Nowe funkcje biblioteczne          | 96         |
+| Rozmiar biblioteki                 | 1719 linii |
+| Naprawione problemy bezpieczeństwa | 7          |
 
 ### Kluczowe osiągnięcia:
 - ✅ Utworzono centralną bibliotekę `noobs_lib.sh` z 96 funkcjami
@@ -164,10 +164,10 @@ download_and_extract <url> <dir> [strip] [cleanup]   # Pobierz i rozpakuj
 
 **Problem**: `apt-key add -` jest deprecated od Debian 11/Ubuntu 22.04.
 
-| Skrypt | Przed | Po |
-|--------|-------|-----|
+| Skrypt                    | Przed                             | Po                             |
+| ------------------------- | --------------------------------- | ------------------------------ |
 | `chce_nextcloud_v2.sh:18` | `wget -qO - URL \| apt-key add -` | `import_gpg_key()` + signed-by |
-| `chce_vault.sh:12` | `curl -fsSL URL \| apt-key add -` | `add_repository_with_key()` |
+| `chce_vault.sh:12`        | `curl -fsSL URL \| apt-key add -` | `add_repository_with_key()`    |
 
 **Nowa metoda** używa `/usr/share/keyrings/` z `signed-by` w sources.list.
 
@@ -175,31 +175,31 @@ download_and_extract <url> <dir> [strip] [cleanup]   # Pobierz i rozpakuj
 
 **Problem**: `$RANDOM` jest przewidywalny (tylko 32768 wartości).
 
-| Skrypt | Przed | Po |
-|--------|-------|-----|
+| Skrypt                    | Przed                                 | Po                         |
+| ------------------------- | ------------------------------------- | -------------------------- |
 | `chce_loadbalancer.sh:84` | `echo $RANDOM \| md5sum \| head -c 5` | `generate_random_string 5` |
 
 ### 3.3 Niebezpieczne uprawnienia (1 skrypt)
 
 **Problem**: `chmod 777` daje wszystkim pełny dostęp.
 
-| Skrypt | Przed | Po |
-|--------|-------|-----|
+| Skrypt                  | Przed                         | Po                                      |
+| ----------------------- | ----------------------------- | --------------------------------------- |
 | `chce_prestashop.sh:84` | `chmod -R 777 /home/shop/var` | `chmod -R 775` + `usermod -aG www-data` |
 
 ### 3.4 Legacy init.d (2 skrypty)
 
 **Problem**: `/etc/init.d/` jest przestarzałe, należy używać systemd.
 
-| Skrypt | Przed | Po |
-|--------|-------|-----|
+| Skrypt                | Przed                           | Po                          |
+| --------------------- | ------------------------------- | --------------------------- |
 | `chce_domoticz.sh:29` | `/etc/init.d/domoticz.sh start` | `service_start domoticz.sh` |
-| `chce_webmina.sh:38` | `/etc/init.d/webmin restart` | `service_restart webmin` |
+| `chce_webmina.sh:38`  | `/etc/init.d/webmin restart`    | `service_restart webmin`    |
 
 ### 3.5 Niestandardowe generowanie haseł (1 skrypt)
 
-| Skrypt | Przed | Po |
-|--------|-------|-----|
+| Skrypt              | Przed                                            | Po                     |
+| ------------------- | ------------------------------------------------ | ---------------------- |
 | `chce_VSCode.sh:71` | `head -c255 /dev/urandom \| base64 \| grep -Eoi` | `generate_password 12` |
 
 ---
@@ -208,24 +208,24 @@ download_and_extract <url> <dir> [strip] [cleanup]   # Pobierz i rozpakuj
 
 ### 4.1 Kategoria: CMS i Aplikacje Web (6 skryptów)
 
-| Skrypt | Zmiany |
-|--------|--------|
-| `chce_drupal.sh` | +biblioteka, +mysql_create_db_user, +php_fpm_create_pool, +nginx_create_server_block |
-| `chce_moodle.sh` | +biblioteka, +mysql_create_db_user, +create_web_user, +apache_create_vhost |
-| `chce_wordpress.sh` | +biblioteka, +mysql_create_db_user, +apache_create_vhost |
-| `chce_nextcloud.sh` | +biblioteka, +mysql_create_db_user, uproszczenie kodu |
-| `chce_typo3.sh` | +biblioteka, +mysql_create_db_user, +create_web_user |
-| `chce_prestashop.sh` | +biblioteka, +create_web_user, +php_fpm_create_pool, naprawione uprawnienia |
+| Skrypt               | Zmiany                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| `chce_drupal.sh`     | +biblioteka, +mysql_create_db_user, +php_fpm_create_pool, +nginx_create_server_block |
+| `chce_moodle.sh`     | +biblioteka, +mysql_create_db_user, +create_web_user, +apache_create_vhost           |
+| `chce_wordpress.sh`  | +biblioteka, +mysql_create_db_user, +apache_create_vhost                             |
+| `chce_nextcloud.sh`  | +biblioteka, +mysql_create_db_user, uproszczenie kodu                                |
+| `chce_typo3.sh`      | +biblioteka, +mysql_create_db_user, +create_web_user                                 |
+| `chce_prestashop.sh` | +biblioteka, +create_web_user, +php_fpm_create_pool, naprawione uprawnienia          |
 
 ### 4.2 Kategoria: Infrastruktura (5 skryptów)
 
-| Skrypt | Zmiany |
-|--------|--------|
-| `chce_mongodb.sh` | +biblioteka, +add_repository_with_key, +generate_random_string |
-| `chce_postgresql.sh` | +biblioteka, +add_repository_with_key, optymalizacja pamięci |
-| `chce_jenkins.sh` | +biblioteka, +add_repository_with_key, +backup_file |
-| `chce_LAMP.sh` | +biblioteka, +add_ppa_repo, +php_install_packages |
-| `chce_LEMP.sh` | +biblioteka, +add_ppa_repo, +php_install_packages |
+| Skrypt               | Zmiany                                                         |
+| -------------------- | -------------------------------------------------------------- |
+| `chce_mongodb.sh`    | +biblioteka, +add_repository_with_key, +generate_random_string |
+| `chce_postgresql.sh` | +biblioteka, +add_repository_with_key, optymalizacja pamięci   |
+| `chce_jenkins.sh`    | +biblioteka, +add_repository_with_key, +backup_file            |
+| `chce_LAMP.sh`       | +biblioteka, +add_ppa_repo, +php_install_packages              |
+| `chce_LEMP.sh`       | +biblioteka, +add_ppa_repo, +php_install_packages              |
 
 ### 4.3 Pozostałe skrypty (38)
 
@@ -299,7 +299,7 @@ service_enable_now name
 ### Minimalny szkielet skryptu noobs:
 
 ```bash
-#!/usr/bin/env bash
+#!/bin/bash
 # Opis skryptu
 # Autor: xxx
 # Refactored: noobs community (v2.0.0)
@@ -326,7 +326,7 @@ msg_ok "Instalacja zakończona pomyślnie!"
 ### Pełny przykład z bazą danych i PHP:
 
 ```bash
-#!/usr/bin/env bash
+#!/bin/bash
 # Instalator aplikacji webowej
 # Refactored: noobs community (v2.0.0)
 

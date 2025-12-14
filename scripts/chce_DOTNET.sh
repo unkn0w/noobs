@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Całość dokumentacji:
 # https://docs.microsoft.com/pl-pl/dotnet/core/install/linux-ubuntu
 #

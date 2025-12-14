@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Skrypt instaluje i laczy sie z sieca ZeroTier
 # Autor: Maciej Loper @2021-10
 

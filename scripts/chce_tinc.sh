@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # docker + docker-compose
 # Autor: Mikołaj Kamiński (mikolaj-kaminski.com)
 # Tutorial: https://www.digitalocean.com/community/tutorials/how-to-install-tinc-and-set-up-a-basic-vpn-on-ubuntu-18-04

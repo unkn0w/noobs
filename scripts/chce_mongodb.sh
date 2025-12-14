@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # MongoDB instalator
 # Authors: Kacper Adamczak, Janszczyrek
 # Refactored: noobs community (v2.0.0)

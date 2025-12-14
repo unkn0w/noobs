@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Vault installation script
 #
 # Author: Sebastian Matuszczyk

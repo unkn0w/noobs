@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Create OpenVPN server
 # Autor: Radoslaw Karasinski
 # Update: Dawid Pospiech, Jakub 'unknow' Mrugalski

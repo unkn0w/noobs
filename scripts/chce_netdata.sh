@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Create netdata instance
 # Autor: Radoslaw Karasinski
 # Supported parameters:

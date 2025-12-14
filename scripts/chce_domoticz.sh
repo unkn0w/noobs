@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Script chce_domoticz.sh created by Andrzej "Ferex" Szczepaniak
 # Script syntax: ./chce_domoticz.sh port_http port_https
 

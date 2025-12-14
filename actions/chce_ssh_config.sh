@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Create ssh config for easy connection with mikr.us
 # Autor: Radoslaw Karasinski, Artur 'stefopl' Stefanski
 # Usage: you can pass following arguments:
