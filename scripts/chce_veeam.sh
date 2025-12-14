@@ -1,36 +1,36 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-echo -e "\e[1;32mSprawdzenie uprawnień \e[0m"
-if [ $EUID != 0 ] 
-then
-	echo "Uruchom poprzez sudo bash chce_veeam.sh lub jako root"
-    exit
-fi
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-echo -e "\e[1;32mPobieranie paczki z Veeam \e[0m"
+msg_info "Sprawdzenie uprawnień"
+require_root
+
+msg_info "Pobieranie paczki z Veeam"
 wget https://download2.veeam.com/veeam-release-deb_1.0.8_amd64.deb -O /tmp/veeam.deb
 
-echo -e "\e[1;32mAktualizacja pakietów \e[0m"
-apt update
+msg_info "Aktualizacja pakietów"
+pkg_update
 
-echo -e "\e[1;32mInstalacja xorriso i cifs-utils \e[0m"
-apt install xorriso cifs-utils -y
+msg_info "Instalacja xorriso i cifs-utils"
+pkg_install xorriso cifs-utils
 
-echo -e "\e[1;32mInstalacja paczki \e[0m"
+msg_info "Instalacja paczki"
 dpkg -i /tmp/veeam.deb
 
-echo -e "\e[1;32mAktualizacja pakietów \e[0m"
-apt update
+msg_info "Aktualizacja pakietów"
+pkg_update
 
-echo -e "\e[1;32mInstalacja Veeam \e[0m"
-apt install veeam -y
+msg_info "Instalacja Veeam"
+pkg_install veeam
 
-echo -e "\e[1;32mDodanie możliwości tworzenia recovery ISO \e[0m"
+msg_info "Dodanie możliwości tworzenia recovery ISO"
 mkdir /etc/systemd/system/veeamservice.service.d
 echo "[Service]" >> /etc/systemd/system/veeamservice.service.d/override.conf
 echo "LimitNOFILE=524288" >> /etc/systemd/system/veeamservice.service.d/override.conf
 echo "LimitNOFILESoft=524288" >> /etc/systemd/system/veeamservice.service.d/override.conf
 systemctl daemon-reload
-systemctl restart veeamservice.service
+service_restart veeamservice
 
-echo -e "\e[1;32mVeeam uruchomisz poprzez: sudo veeam \e[0m"
+msg_ok "Veeam uruchomisz poprzez: sudo veeam"

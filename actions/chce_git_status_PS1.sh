@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Dodanie do aktualnego $PS1 statusu repozytorium gita bieżącego katalogu
 # Autorzy: Tomasz Wiśniewski, krystofair @ 2025-09-22
 
-echo "Jeśli twoja wybrana powłoka nie zadziała, to spróbuj zainstalować do 'bash'."
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
+msg_info "Jeśli twoja wybrana powłoka nie zadziała, to spróbuj zainstalować do 'bash'."
 sleep 1
 
 if ! shopt -oq posix; then
@@ -150,14 +154,14 @@ if [[ ! $? -eq 0 ]]; then echo $ch_shell; exit -1; fi
 
 installation_type=$(choose_installation_place)
 install_path=$(get_install_path_for_specific_shell $ch_shell $installation_type)
-if [[ ! $? -eq 0 ]]; then echo "Coś poszło nie tak."; exit -1; fi
+if [[ ! $? -eq 0 ]]; then msg_error "Coś poszło nie tak."; exit -1; fi
 
 
 if [[ ! -e $GIT_PROMPT_FILE ]]
 then
     # https://anotheruiguy.gitbooks.io/gitforeveryone/content/auto/README.html
     GIT_PROMPT_FILE_URL="https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh"
-    echo "Pobieram plik $GIT_PROMPT_FILE_URL"
+    msg_info "Pobieram plik $GIT_PROMPT_FILE_URL"
     curl -o $GIT_PROMPT_FILE "$GIT_PROMPT_FILE_URL"
 fi
 
@@ -174,12 +178,12 @@ fi
 # W tym miejscu nie ma sprawdzenia czy plik już istnieje,
 # ze względu na to, że jeżeli użytkownik namiesza w oryginalnym pliku,
 # to uruchomienie skryptu po raz drugi naprawi mu ten plik.
-echo "Instaluję plik $FILENAME w katalogu $(dirname $install_path)"
+msg_info "Instaluję plik $FILENAME w katalogu $(dirname $install_path)"
 install -m 0644 $GIT_PROMPT_FILE $(dirname $install_path)/$FILENAME
 
 if test -e $install_path && test -n "$(cat $install_path | grep __git_ps1)"
 then
-  echo "Masz to już zainstalowane."
+  msg_info "Masz to już zainstalowane."
   unset ch_shell
   unset installation_type
   unset install_path
@@ -236,13 +240,13 @@ if test $ch_shell = bash || test $ch_shell = csh
 then
   new_ps1=$(choose_ps1_format)
   if [[ ! $? -eq 0 ]]; then
-    echo "Wybrano zły format, nie robię nic, kończę."
-    echo "Uruchom mnie ponownie."
+    msg_error "Wybrano zły format, nie robię nic, kończę."
+    msg_info "Uruchom mnie ponownie."
     exit 0
   fi
 fi
 
-echo "Dodaję nowe instrukcje do pliku $install_path"
+msg_info "Dodaję nowe instrukcje do pliku $install_path"
 echo "# === Dodane przez skrypt 'chce_git_status_PS1.sh'. ===" >> $install_path
 echo "$features" >> $install_path
 echo 'if [[ -z $(declare -F | grep __git_ps1) ]]; then' >> $install_path
@@ -270,4 +274,3 @@ unset FILENAME
 rm -f $GIT_PROMPT_FILE
 
 exit 0
-

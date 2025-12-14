@@ -55,6 +55,10 @@
 # sudo ./stirling-pdf-installer.sh -r
 ###############################################
 
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
 set -e  # Zatrzymaj skrypt przy pierwszym błędzie
 
 APP="Stirling-PDF"
@@ -71,28 +75,13 @@ header_info() {
   echo -e "\n=== Instalacja/Aktualizacja ${APP} ===\n"
 }
 
-msg_info() {
-  echo -e "\e[34m[INFO]\e[0m $1"
-}
-
-msg_ok() {
-  echo -e "\e[32m[OK]\e[0m $1"
-}
-
-msg_error() {
-  echo -e "\e[31m[ERROR]\e[0m $1"
-}
-
 # Sprawdzenie uprawnień roota
-if [[ $EUID -ne 0 ]]; then
-  msg_error "Ten skrypt wymaga uprawnień administratora. Uruchom jako root lub z sudo."
-  exit 1
-fi
+require_root
 
 # Instalacja pakietu
 install_package() {
   if command -v apt &>/dev/null; then
-    sudo apt update && sudo apt install -y "$1"
+    pkg_update && pkg_install "$1"
   elif command -v dnf &>/dev/null; then
     sudo dnf install -y "$1"
   elif command -v yum &>/dev/null; then
@@ -107,7 +96,7 @@ install_package() {
 
 update_package_manager() {
   if command -v apt &>/dev/null; then
-    sudo apt update
+    pkg_update
   elif command -v dnf &>/dev/null; then
     sudo dnf check-update
   elif command -v yum &>/dev/null; then
@@ -137,35 +126,35 @@ check_java() {
 # Instalacja Java
 install_java() {
   msg_info "Instalacja Java ${JAVA_VERSION}..."
-  
+
   if [ -f /etc/redhat-release ]; then
     CENTOS_MAJOR=$(grep -oP '[0-9]+' /etc/redhat-release | head -1)
-    
+
     if [[ $CENTOS_MAJOR -eq 7 ]]; then
       msg_info "Wykryto CentOS/RHEL 7 - instalacja OpenJDK 17"
-      
+
       # Dodanie repozytorium
       sudo yum install -y epel-release
       sudo yum install -y https://cdn.azul.com/zulu/bin/zulu-repo-1.0.0-1.noarch.rpm
-      
+
       # Instalacja OpenJDK 17
       sudo yum install -y zulu17-jdk
-      
+
       # Ustawienie Java 17 jako domyślnej
       sudo alternatives --set java /usr/lib/jvm/zulu17/bin/java
       sudo alternatives --set javac /usr/lib/jvm/zulu17/bin/javac
-      
+
       # Ustawienie JAVA_HOME
       echo "export JAVA_HOME=/usr/lib/jvm/zulu17" | sudo tee -a /etc/profile.d/java.sh
       source /etc/profile.d/java.sh
-      
+
       return 0
     fi
   fi
 
   # Standardowa instalacja dla innych dystrybucji
   if command -v apt &>/dev/null; then
-    sudo apt install -y openjdk-${JAVA_VERSION}-jdk
+    pkg_install openjdk-${JAVA_VERSION}-jdk
   elif command -v dnf &>/dev/null; then
     sudo dnf install -y java-${JAVA_VERSION}-openjdk-devel
   elif command -v yum &>/dev/null; then
@@ -176,7 +165,7 @@ install_java() {
     msg_error "Nie znaleziono obsługiwanego menedżera pakietów."
     return 1
   fi
-  
+
   # Aktualizacja alternatyw dla Javy
   if command -v update-alternatives &>/dev/null; then
     sudo update-alternatives --set java /usr/lib/jvm/java-${JAVA_VERSION}-openjdk-*/bin/java
@@ -196,7 +185,7 @@ check_and_install_tools() {
       exit 1
     fi
   fi
-  
+
   # Sprawdź pozostałe narzędzia
   for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v $tool &> /dev/null; then
@@ -222,7 +211,7 @@ check_and_install_tools_auto() {
   if ! check_java; then
     install_java
   fi
-  
+
   for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v $tool &> /dev/null; then
       msg_info "$tool nie jest zainstalowany. Instaluję automatycznie."
@@ -243,11 +232,11 @@ download_and_build() {
     exit 1
   fi
   msg_info "Pobieranie wersji ${RELEASE}"
-  
+
   mkdir -p ${TEMP_DIR}
   wget -q https://github.com/Stirling-Tools/Stirling-PDF/archive/refs/tags/v${RELEASE}.tar.gz -O ${TEMP_DIR}/v${RELEASE}.tar.gz || { msg_error "Nie udało się pobrać archiwum"; exit 1; }
   tar -xzf ${TEMP_DIR}/v${RELEASE}.tar.gz -C ${TEMP_DIR} || { msg_error "Nie udało się rozpakować archiwum"; exit 1; }
-  
+
   CURRENT_DIR=$(pwd)
   cd ${TEMP_DIR}/Stirling-PDF-${RELEASE} || { msg_error "Nie znaleziono rozpakowanego katalogu"; exit 1; }
   chmod +x ./gradlew
@@ -258,11 +247,11 @@ download_and_build() {
 # Instalacja plików aplikacji
 install_files() {
   msg_info "Instalacja plików aplikacji"
-  
+
   mkdir -p ${INSTALL_DIR}
   cp -r ${TEMP_DIR}/Stirling-PDF-${RELEASE}/build/libs/Stirling-PDF-*.jar ${INSTALL_DIR}/
   cp -r ${TEMP_DIR}/Stirling-PDF-${RELEASE}/scripts ${INSTALL_DIR}/
-  
+
   ln -sf ${INSTALL_DIR}/Stirling-PDF-*.jar ${INSTALL_DIR}/Stirling-PDF.jar
 }
 
@@ -271,7 +260,7 @@ create_systemd_service() {
   msg_info "Tworzenie usługi systemd"
 
   useradd -r -s /bin/false stirlingpdf 2>/dev/null || true
-  
+
   # Najpierw tworzę plik serwisu
   cat <<EOF >${SERVICE_FILE}
 [Unit]
@@ -296,7 +285,7 @@ EOF
   chown -R stirlingpdf:stirlingpdf ${INSTALL_DIR}
 
   systemctl daemon-reload
-  systemctl enable stirlingpdf.service
+  service_enable stirlingpdf
 }
 
 # Tworzenie pliku custom_settings.yml
@@ -304,13 +293,13 @@ create_custom_settings() {
   if [[ -n "$CUSTOM_PORT" ]]; then
     local config_dir="${INSTALL_DIR}/configs"
     local config_file="${config_dir}/custom_settings.yml"
-    
+
     mkdir -p "$config_dir"
     echo "server:" > "$config_file"
     echo "  port: $CUSTOM_PORT" >> "$config_file"
-    
+
     chmod 644 "$config_file"
-    
+
     msg_info "Utworzono plik custom_settings.yml z portem: $CUSTOM_PORT"
   fi
 }
@@ -335,14 +324,14 @@ configure_firewall() {
 # Czyszczenie plików tymczasowych
 cleanup_temp_files() {
   msg_info "Czyszczenie plików tymczasowych"
-  
+
   # Usunięcie repozytorium Zulu jeśli zostało dodane
   if [ -f /etc/yum.repos.d/zulu.repo ]; then
     sudo yum remove -y zulu-repo
     sudo rm -f /etc/yum.repos.d/zulu.repo
     sudo yum clean all
   fi
-  
+
   rm -rf ${TEMP_DIR}
 }
 
@@ -358,7 +347,7 @@ backup_existing() {
 # Instalacja Stirling-PDF
 install_stirling_pdf() {
   msg_info "Rozpoczynam instalację ${APP}"
-  
+
   download_and_build
   install_files
   if [[ -n "$CUSTOM_PORT" ]]; then
@@ -366,11 +355,11 @@ install_stirling_pdf() {
   fi
   create_systemd_service
   configure_firewall
-  
-  systemctl start stirlingpdf.service || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
-  systemctl restart stirlingpdf.service || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
 
-  
+  service_start stirlingpdf || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
+  service_restart stirlingpdf || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
+
+
   cleanup_temp_files
   local port="${CUSTOM_PORT:-8080}"
   msg_ok "Instalacja ${APP} zakończona pomyślnie!"
@@ -380,10 +369,10 @@ install_stirling_pdf() {
 # Aktualizacja Stirling-PDF
 update_stirling_pdf() {
   msg_info "Sprawdzanie dostępności aktualizacji..."
-  
+
   if check_for_updates; then
     msg_info "Rozpoczynam aktualizację ${APP}"
-    
+
     # Sprawdź, czy istnieje custom_settings.yml z portem
     if [[ -z "$CUSTOM_PORT" ]]; then
       local existing_port=$(read_custom_port)
@@ -395,7 +384,7 @@ update_stirling_pdf() {
       msg_info "Zostanie użyty nowy port: $CUSTOM_PORT"
     fi
 
-    systemctl stop stirlingpdf || { msg_error "Nie udało się zatrzymać usługi"; exit 1; }
+    service_stop stirlingpdf || { msg_error "Nie udało się zatrzymać usługi"; exit 1; }
 
     backup_existing
     download_and_build
@@ -405,9 +394,9 @@ update_stirling_pdf() {
     fi
     create_systemd_service
     configure_firewall
-    
-    systemctl start stirlingpdf || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
-    
+
+    service_start stirlingpdf || { msg_error "Nie udało się uruchomić usługi"; exit 1; }
+
     cleanup_temp_files
     local port="${CUSTOM_PORT:-8080}"
     msg_ok "Aktualizacja ${APP} zakończona pomyślnie!"
@@ -420,7 +409,7 @@ update_stirling_pdf() {
 
 read_custom_port() {
   local config_file="${INSTALL_DIR}/configs/custom_settings.yml"
-  
+
   if [[ -f "$config_file" ]]; then
     local port=$(grep -oP "port: \K[0-9]+" "$config_file")
     if [[ -n "$port" ]]; then
@@ -428,7 +417,7 @@ read_custom_port() {
       return 0
     fi
   fi
-  
+
   return 1
 }
 
@@ -437,33 +426,33 @@ get_installed_version() {
   if [[ -L "${INSTALL_DIR}/Stirling-PDF.jar" ]]; then
     local jar_path=$(readlink -f "${INSTALL_DIR}/Stirling-PDF.jar")
     local version=$(echo "$jar_path" | grep -oP "Stirling-PDF-\K[0-9]+\.[0-9]+\.[0-9]+" || echo "")
-    
+
     if [[ -n "$version" ]]; then
       echo "$version"
       return 0
     fi
   fi
-  
+
   # Próba odczytu wersji bezpośrednio z aplikacji JAR
   if [[ -f "${INSTALL_DIR}/Stirling-PDF.jar" ]]; then
     local version=$(java -jar "${INSTALL_DIR}/Stirling-PDF.jar" --version 2>/dev/null)
-    
+
     if [[ -n "$version" && "$version" != *"Error"* ]]; then
       echo "$version" | grep -oP "[0-9]+\.[0-9]+\.[0-9]+" || echo "0.0.0"
       return 0
     fi
   fi
-  
+
   # Próba użycia systemctl do sprawdzenia wersji
   if systemctl is-active --quiet stirlingpdf.service; then
     local version=$(curl -s "http://localhost:${CUSTOM_PORT:-8080}/version" 2>/dev/null | grep -oP '"version":\s*"\K[^"]+' || echo "")
-    
+
     if [[ -n "$version" ]]; then
       echo "$version"
       return 0
     fi
   fi
-  
+
   # Jeśli nie udało się odczytać wersji żadną z metod
   echo "0.0.0"
 }
@@ -477,7 +466,7 @@ get_latest_version() {
 check_for_updates() {
   local installed_version=$(get_installed_version)
   local latest_version=$(get_latest_version)
-  
+
   if [[ "$installed_version" != "$latest_version" ]]; then
     msg_info "Dostępna jest nowa wersja: $latest_version (zainstalowana: $installed_version)"
     return 0
@@ -492,13 +481,13 @@ check_for_updates() {
 # Usuwanie Stirling-PDF
 remove_stirling_pdf() {
   msg_info "Usuwanie ${APP}"
-  
-  systemctl stop stirlingpdf.service 2>/dev/null || true
+
+  service_stop stirlingpdf 2>/dev/null || true
   systemctl disable stirlingpdf.service 2>/dev/null || true
-  
+
   rm -f ${SERVICE_FILE}
   systemctl daemon-reload
-  
+
   if [[ "$AUTO_ACCEPT" == true ]]; then
     rm -rf ${INSTALL_DIR}
     msg_ok "Aplikacja ${APP} została całkowicie usunięta."
@@ -514,7 +503,7 @@ remove_stirling_pdf() {
 }
 restart_application() {
   msg_info "Uruchamianie aplikacji ${APP}"
-  systemctl restart stirlingpdf.service || { msg_error "Nie udało się zrestartować usługi"; exit 1; }
+  service_restart stirlingpdf || { msg_error "Nie udało się zrestartować usługi"; exit 1; }
   msg_ok "Aplikacja ${APP} została pomyślnie Uruchomiona"
 }
 
@@ -534,17 +523,17 @@ show_help() {
 # Główna logika skryptu
 main() {
   header_info
-  
+
   AUTO_ACCEPT=false
-  
+
   if [[ $# -eq 0 ]]; then
     show_help
     exit 0
   fi
-  
+
   while [[ "$#" -gt 0 ]]; do
     case $1 in
-      -i|--install) 
+      -i|--install)
         INSTALL=true
         if [[ "$2" == "y" ]]; then
           AUTO_ACCEPT=true

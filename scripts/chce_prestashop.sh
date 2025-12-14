@@ -1,36 +1,30 @@
-#!/bin/bash
-#Michał Giza
+#!/usr/bin/env bash
+# Michał Giza
+# Refactored: noobs community (v2.0.0)
 
-echo -e "\e[1;32mSprawdzenie uprawnień \e[0m"
-if [ $EUID != 0 ]
-then
-	echo "Uruchom poprzez sudo bash chce_prestashop.sh lub jako root"
-    exit
-fi
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
+msg_info "Sprawdzenie uprawnien"
+require_root
 
-echo -e "\e[1;32mAktualizacja pakietów \e[0m"
-apt update
+msg_info "Aktualizacja pakietow"
+pkg_update
 
-echo -e "\e[1;32mDodanie repozytorium z PHP \e[0m"
-apt install software-properties-common -y
-add-apt-repository ppa:ondrej/php -y
-apt update
+msg_info "Dodanie repozytorium z PHP"
+add_ppa_repo "ondrej/php"
 
-echo -e "\e[1;32mInstalacja pakietów \e[0m"
-apt install vsftpd unzip nginx mariadb-server php7.4-fpm php7.4-common php7.4-mysql php7.4-gmp php7.4-curl php7.4-intl php7.4-mbstring php7.4-xmlrpc php7.4-gd php7.4-xml php7.4-cli php7.4-zip -y
+msg_info "Instalacja pakietow"
+pkg_install vsftpd unzip nginx mariadb-server
+php_install_packages "7.4" fpm common mysql gmp curl intl mbstring xmlrpc gd xml cli zip
 
-echo -e "\e[1;32mBlokada dostępu SSH \e[0m"
-cat >> /etc/ssh/sshd_config <<EOL
-Match User shop
-ChrootDirectory /home/shop
-EOL
+msg_info "Tworzenie uzytkownika shop"
+create_web_user "shop" "/home/shop" "/bin/bash" true
+SSH_PASS="$REPLY"
 
-echo -e "\e[1;32mRestart SSH \e[0m"
-systemctl restart ssh
-
-echo -e "\e[1;32mKonfiguracja FTP \e[0m"
-cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+msg_info "Konfiguracja FTP"
+backup_file /etc/vsftpd.conf
 cat > /etc/vsftpd.conf <<EOL
 listen=NO
 listen_ipv6=YES
@@ -53,88 +47,64 @@ pasv_enable=Yes
 pasv_min_port=40000
 pasv_max_port=40100
 EOL
+service_restart vsftpd
 
-echo -e "\e[1;32mRestart vsftpd \e[0m"
-systemctl restart vsftpd
+msg_info "Tworzenie bazy danych"
+mysql_create_db_user "shop" "shop"
+DB_PASS="$REPLY"
 
-echo -e "\e[1;32mTworzenie bazy i usera \e[0m"
-HASLO="$(openssl rand -base64 12)"
-mysql -e "CREATE DATABASE shop;"
-mysql -e "CREATE USER 'shop'@'localhost' IDENTIFIED BY '${HASLO}';"
-mysql -e "GRANT ALL ON shop.* TO 'shop'@'localhost' WITH GRANT OPTION;"
-mysql -e "FLUSH PRIVILEGES;"
+msg_info "Zmiana ustawien PHP"
+php_configure "7.4" "file_uploads" "On" "fpm"
+php_configure "7.4" "allow_url_fopen" "On" "fpm"
+php_configure "7.4" "short_open_tag" "On" "fpm"
+php_configure "7.4" "memory_limit" "256M" "fpm"
+php_configure "7.4" "upload_max_filesize" "100M" "fpm"
+php_configure "7.4" "max_execution_time" "360" "fpm"
+php_configure "7.4" "cgi.fix_pathinfo" "0" "fpm"
+php_configure "7.4" "date.timezone" "Europe/Warsaw" "fpm"
 
-echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
-SSH_PASS="$(openssl rand -base64 12)"
-useradd -m shop -s /bin/bash
-echo shop:${SSH_PASS} | chpasswd
+msg_info "Tworzenie puli PHP-FPM"
+php_fpm_create_pool "7.4" "shop" "shop"
+PHP_SOCKET="$REPLY"
+service_restart php7.4-fpm
 
-echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
-sed -i 's,^file_uploads =.*$,file_uploads = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^allow_url_fopen =.*$,allow_url_fopen = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^short_open_tag =.*$,short_open_tag = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^memory_limit =.*$,memory_limit = 256M,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^upload_max_filesize =.*$,upload_max_filesize = 100M,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^max_execution_time =.*$,max_execution_time = 360,' /etc/php/7.4/fpm/php.ini
-cat >> /etc/php/7.4/fpm/php.ini <<EOL
-cgi.fix_pathinfo = 0
-date.timezone = Europe/Warsaw
-EOL
+msg_info "Pobieranie PrestaShop"
+download_file "https://download.prestashop.com/download/releases/prestashop_1.7.7.8.zip" "/tmp/prestashop_main.zip"
 
-echo -e "\e[1;32mUtworzenie dedykowanego PHP pool \e[0m"
-cp /etc/php/7.4/fpm/pool.d/www.conf /etc/php/7.4/fpm/pool.d/shop.conf
-cat > /etc/php/7.4/fpm/pool.d/shop.conf <<EOL
-[shop]
-user = shop
-group = shop
-listen = /run/php/shop.sock
-listen.owner = www-data
-listen.group = www-data
-pm = dynamic
-pm.max_children = 5
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-EOL
+msg_info "Wypakowywanie PrestaShop"
+cd /tmp || die "Nie mozna przejsc do /tmp"
+unzip -o /tmp/prestashop_main.zip -d /tmp/prestashop_extract
+rm -f /tmp/prestashop_extract/Install_PrestaShop.html /tmp/prestashop_extract/index.php
+unzip -o /tmp/prestashop_extract/prestashop.zip -d /home/shop
+rm -rf /tmp/prestashop_extract /tmp/prestashop_main.zip
 
-echo -e "\e[1;32mRestart PHP \e[0m"
-systemctl restart php7.4-fpm
-
-echo -e "\e[1;32mPobieranie PrestaShop \e[0m"
-wget https://download.prestashop.com/download/releases/prestashop_1.7.7.8.zip -O /tmp/prestashop_main.zip
-
-echo -e "\e[1;32mWypakowywanie do /home/shop i usunięcie niepotrzebnych plików \e[0m"
-unzip /tmp/prestashop_main.zip
-rm Install_PrestaShop.html index.php
-unzip prestashop.zip -d /home/shop
-rm prestashop.zip
-
-echo -e "\e[1;32mDostosowanie uprawnień \e[0m"
+msg_info "Dostosowanie uprawnien"
 chown -R shop:shop /home/shop
 chmod -R 755 /home/shop
-chmod -R 777 /home/shop/var
+# Uzyj 775 zamiast 777 dla bezpieczenstwa (grupa www-data moze zapisywac)
+chmod -R 775 /home/shop/var
+# Dodaj uzytkownika shop do grupy www-data
+usermod -aG www-data shop
 
-echo -e "\e[1;32mDodanie konfiguracji Nginx \e[0m"
-unlink /etc/nginx/sites-enabled/default
-wget https://raw.githubusercontent.com/gizamichal/NGINX/main/prestashop
-mv prestashop /etc/nginx/sites-available/prestashop
-ln -s /etc/nginx/sites-available/prestashop /etc/nginx/sites-enabled/
+msg_info "Konfiguracja Nginx"
+webserver_disable_site "nginx" "default"
+nginx_create_server_block "prestashop" "/home/shop" "$PHP_SOCKET" "prestashop"
+webserver_enable_site "nginx" "prestashop"
 
-echo -e "\e[1;32mRestart Nginx \e[0m"
-systemctl restart nginx
-
-echo -e "\e[1;32mDalsze instrukcje w pliku prestashop.txt \e[0m"
+msg_ok "PrestaShop zainstalowany pomyslnie!"
 GATEWAY="$(/sbin/ip route | awk '/default/ { print $3 }')"
 IP="$(ip route get ${GATEWAY} | grep -oP 'src \K[^ ]+')"
-cat > prestashop.txt <<EOL
-PrestaShop jest gotowa do instalacji pod http://${IP}.
-Nazwa bazy i użytkownika to shop.
-Hasło do bazy: ${HASLO}
-Hasło FTP dla lokalnego użytkownika shop: ${SSH_PASS}
 
-Po zakończonej instalacji usuń katalog install: sudo rm -rf /home/shop/install (lub poprzez FTP)
-Sprawdź, pod jakim adresem jest panel administratora.
-Nazwa katalogu w /home/shop zaczyna się od 'admin'.
-W pliku /etc/nginx/sites-enabled/prestashop zamień 'CHANGE' (2x) na nazwę katalogu z panelem.
-Następnie wykonaj sudo systemctl restart nginx
+cat > prestashop.txt <<EOL
+PrestaShop jest gotowy do instalacji pod http://${IP}.
+Nazwa bazy i uzytkownika: shop
+Haslo do bazy: ${DB_PASS}
+Haslo FTP/SSH dla uzytkownika shop: ${SSH_PASS}
+
+Po zakonczeniu instalacji usun katalog install:
+sudo rm -rf /home/shop/install
+
+Sprawdz nazwe katalogu panelu admina (zaczyna sie od 'admin').
 EOL
+
+msg_info "Szczegoly zapisane w prestashop.txt"

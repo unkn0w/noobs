@@ -5,21 +5,22 @@
 # Aktualizacja2: Michał Skórcz
 set -e
 
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
-if [[ $EUID -ne 0 ]]; then
-   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_wireguard.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
-   exit 1
-fi
+require_root
 
 # Backup the current resolv.conf file
 cp /etc/resolv.conf /etc/resolv.back
 
 # Update the package list and install necessary packages
-apt update
-apt install -y --no-install-recommends libmnl-dev make qrencode wireguard-tools git iptables
+pkg_update
+pkg_install libmnl-dev make qrencode wireguard-tools git iptables
 
 # Stop and disable resolvconf
-systemctl stop resolvconf || true
+service_stop resolvconf || true
 systemctl disable resolvconf || true
 
 # Restore the original resolv.conf file
@@ -112,12 +113,12 @@ echo -e "\n\n==============\n\nClient Configuration:\n\n"
 curl -s -d "mode=wireguard-client&srv=$srv&privkey=$cliprivkey&pubkey=$pubkey" https://mikr.us/generator.php | tee /etc/wireguard/wg-client1.conf
 
 # Restart Wireguard with the modified configuration
-systemctl stop "wg-quick@wg0"
+service_stop "wg-quick@wg0"
 sed -i '/RETRIES=infinity/{n;s/.*/Environment=WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1/}' /lib/systemd/system/wg-quick@.service
 systemctl daemon-reload
 echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> $PROFILE_PATH
 echo "export WG_I_PREFER_BUGGY_USERSPACE_TO_POLISHED_KMOD=1" >> $HOME_PATH/.bashrc
-systemctl start "wg-quick@wg0"
+service_start "wg-quick@wg0"
 
 # Generate a QR code for the client configuration
 qrencode -t ansiutf8 </etc/wireguard/wg-client1.conf

@@ -1,12 +1,12 @@
 #!/bin/bash
 #Author Borys Gnaciński
 
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
 # privileges check
-if [ $EUID != 0 ] 
-then
-    echo "Uruchom skrypt jako root."
-    exit
-fi
+require_root
 
 primary_user="$(ls /home/ | head -1)"
 
@@ -27,9 +27,9 @@ securing_ssh(){
 
 # installing specified packages
 package_installation(){
-    sudo apt update
-    sudo apt install -y lynis debsums unattended-upgrades apt-show-versions
-    sudo apt install -y logwatch
+    pkg_update
+    pkg_install lynis debsums unattended-upgrades apt-show-versions
+    pkg_install logwatch
 }
 
 # setting up cron
@@ -51,7 +51,7 @@ echo "--------------------------------------------------------------------------
 echo "[!] Domyślny użytkownik to '$primary_user'. Zostanie on dodany do grupy 'ssh_group'."
 echo "----------------------------------------------------------------------------------"
 echo "[!] Uwaga! Ten skrypt: "
-echo " - wyłącza logowania hasłem", 
+echo " - wyłącza logowania hasłem",
 echo " - wyłącza możliwość logowania HASŁEM na konto root(przez ssh)"
 echo " - ustawia maksymalną ilośc prób uwierzytelnienia na 3"
 echo " - wyłącza możliwość używania GUI przez ssh(X11Forwarding)"
@@ -102,7 +102,7 @@ else
 fi
 
 echo "[*] Restartowanie usługi 'ssh'"
-service ssh restart
+service_restart ssh
 
 echo "[*] Dodawanie zadania 'cron'"
 cron_job_setup

@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 if [[ -n "$(grep 'policz' ~/.bash_aliases)" ]]; then
-    echo "Już dodano aliasy z tego pliku"
+    msg_info "Już dodano aliasy z tego pliku"
     exit 0
 fi
 
@@ -44,5 +48,5 @@ alias jsonf="python -m json.tool"
 alias losuj="python -c '\''from os import urandom; from base64 import b64encode; print(b64encode(urandom(32)).decode(\"utf-8\"))'\''"
 ' >>~/.bash_aliases
 
-echo "Pomyślnie dodano aliasy!"
-echo "Upewnij się, że plik ~/.bash_aliases jest ładowany przy tworzeniu nowego basha."
+msg_ok "Pomyślnie dodano aliasy!"
+msg_info "Upewnij się, że plik ~/.bash_aliases jest ładowany przy tworzeniu nowego basha."

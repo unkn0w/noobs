@@ -2,17 +2,22 @@
 # LAMP = Linux + Apache + MySQL (MariaDB) + PHP
 # Autor: Jakub 'unknow' Mrugalski
 # Edited and modified by: Andrzej 'Ferex' Szczepaniak, Jarosław 'Evilus' Rauza, Artur 'stefopl' Stefański
+# Refactored: noobs community (v2.0.0)
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 function show_help() {
-    echo "Użycie: $0 [--php-fpm | --php-mod]"
+    echo "Uzycie: $0 [--php-fpm | --php-mod]"
     echo "Opcje:"
     echo "  --php-fpm      Zainstaluj Apache z FPM/FastCGI"
     echo "  --php-mod      Zainstaluj Apache z mod_php"
-    echo "  -h, --help     Wyświetl pomoc"
+    echo "  -h, --help     Wyswietl pomoc"
     echo ""
 }
 
-[[ $EUID != 0 ]]  && { echo "Uruchom jako root" ; exit; }
+require_root
 
 USE_PHP_FPM=false
 
@@ -33,38 +38,43 @@ for arg in "$@"; do
             exit 0
             ;;
         *)
-            echo "Błąd: Nieprawidłowa opcja '$arg'."
+            msg_err "Nieprawidlowa opcja '$arg'."
             show_help
             exit 1
             ;;
     esac
 done
 
-apt update
-apt install -y software-properties-common
+msg_info "Aktualizacja pakietow"
+pkg_update
+pkg_install software-properties-common
 
-# Repozytoria zewnętrzne z najnowszymi PHP i Apache2 (nie ma ich w standardowym Ubuntu)
-add-apt-repository -y ppa:ondrej/apache2
-add-apt-repository -y ppa:ondrej/php
+msg_info "Dodawanie repozytoriow zewnetrznych"
+add_ppa_repo "ondrej/apache2"
+add_ppa_repo "ondrej/php"
 
-# Instalacja Apache2 oraz popularnych modułów PHP
+msg_info "Instalacja Apache i PHP"
 if [ "$USE_PHP_FPM" = true ]; then
-    apt install -y apache2 libapache2-mod-fcgid php php-fpm php-curl php-common php-igbinary php-imagick php-intl php-mbstring php-xml php-zip php-bcmath php-gd php-cli php-memcached php-memcache php-sqlite3 php-pgsql php-mysql php-mcrypt
-    # Zmiana mpm_prefork na mpm_event mpm-prefork działa kiedy instalujemy libapache2-mod-php a mpm_event dla php-fpm
+    pkg_install apache2 libapache2-mod-fcgid
+    php_install_packages "" fpm curl common igbinary imagick intl mbstring xml zip bcmath gd cli memcached memcache sqlite3 pgsql mysql mcrypt
+
+    # Zmiana mpm_prefork na mpm_event
     a2dismod mpm_prefork
     if ! apache2ctl -M | grep -q 'mpm_event'; then
         a2enmod mpm_event
     fi
-    # Aktywacja konfiguracji modułu php-fpm dla apache2
+
+    # Aktywacja konfiguracji php-fpm dla apache2
     PHP_VERSION="$(/usr/bin/php.default -v | head -1 | cut -c5-7)"
     a2enconf php"$PHP_VERSION"-fpm
     a2enmod rewrite setenvif proxy proxy_fcgi
 else
-    apt install -y apache2 libapache2-mod-php php php-curl php-common php-igbinary php-imagick php-intl php-mbstring php-xml php-zip php-bcmath php-gd php-cli php-sqlite3 php-pgsql php-mysql php-mcrypt
+    pkg_install apache2 libapache2-mod-php
+    php_install_packages "" "" curl common igbinary imagick intl mbstring xml zip bcmath gd cli sqlite3 pgsql mysql mcrypt
 
     PHP_VERSION="$(/usr/bin/php.default -v | head -1 | cut -c5-7)"
-    a2disconf php"$PHP_VERSION"-fpm
-    a2dismod mpm_event
+    a2disconf php"$PHP_VERSION"-fpm 2>/dev/null || true
+    a2dismod mpm_event 2>/dev/null || true
     if ! apache2ctl -M | grep -q 'mpm_prefork'; then
         a2enmod php"$PHP_VERSION"
         a2enmod mpm_prefork
@@ -72,45 +82,41 @@ else
     a2enmod rewrite
 fi
 
-# Restart Apache
-systemctl restart apache2
+service_restart apache2
 
-# Instalacja MariaDB (klient i serwer)
-apt install -y mariadb-server mariadb-client
-# Uruchomienie serwera mariadb
-systemctl start mariadb
-# Dodanie MariaDB i Apache2 do autostartu
-systemctl enable apache2
-systemctl enable mariadb
+msg_info "Instalacja MariaDB"
+pkg_install mariadb-server mariadb-client
+service_start mariadb
 
+msg_info "Dodanie uslug do autostartu"
+service_enable apache2
+service_enable mariadb
 
-if [ -f /var/www/html/index.html ]; then
-    echo "Plik /var/www/html/index.html istnieje. Usuwanie..."
-    rm /var/www/html/index.html
-fi
+msg_info "Tworzenie strony testowej PHP"
+rm -f /var/www/html/index.html
 
 if [ -f /var/www/html/index.php ]; then
-    read -p "Plik /var/www/html/index.php już istnieje. Czy chcesz go nadpisać? (t/n): " choice
-    if [[ "$choice" != "t" ]]; then
-        echo "Plik nie został nadpisany."
+    if ! confirm_action "Plik /var/www/html/index.php juz istnieje. Nadpisac?"; then
+        msg_info "Plik nie zostal nadpisany."
         exit 0
     fi
 fi
 
-echo '<?php
+cat > /var/www/html/index.php <<'EOL'
+<?php
 echo "<h1>Test PHP</h1>";
 echo "<p>Wynik dodawania 2 + 2 = " . (2 + 2) . "</p>";
 echo "<p>Aktualny czas: " . date("d.m.Y H:i:s") . "</p>";
 echo "<p>Wersja PHP: " . phpversion() . "</p>";
 echo "<p>Server API: " . php_sapi_name() . "</p>";
-echo "<p>Domyślna strona utworzona za pomocą skryptu <a href=\"https://github.com/unkn0w/noobs/\">NOOBS</a> <a href=\"https://github.com/unkn0w/noobs/blob/main/scripts/chce_LAMP.sh\">chce_LAMP.sh</a></p>";
-?>' >/var/www/html/index.php
+echo "<p>Domyslna strona utworzona za pomoca skryptu <a href=\"https://github.com/unkn0w/noobs/\">NOOBS</a></p>";
+?>
+EOL
 
-# == Lekki hardening ustawień ==
-# Serwer ma się nie doklejać swojej stopki nigdzie
-sed -i -e "s/^ServerSignature OS*.*\$/ServerSignature Off/" '/etc/apache2/conf-available/security.conf'
-# Serwer będzie się przedstawiał jako "Apache" - bez wersji softu i OS
-sed -i -e "s/^ServerTokens OS*.*\$/ServerTokens Prod/" '/etc/apache2/conf-available/security.conf'
+msg_info "Hardening Apache"
+sed -i -e "s/^ServerSignature OS*.*$/ServerSignature Off/" '/etc/apache2/conf-available/security.conf'
+sed -i -e "s/^ServerTokens OS*.*$/ServerTokens Prod/" '/etc/apache2/conf-available/security.conf'
 
-# Restart Apache
-systemctl restart apache2
+service_restart apache2
+
+msg_ok "LAMP zainstalowany pomyslnie!"

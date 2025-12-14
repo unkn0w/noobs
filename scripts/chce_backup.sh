@@ -1,20 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: Borys Gnaciński
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
 output_dir=""
 
-
-if [ $EUID != 0 ]
-then
-    echo "Uruchom skrypt jako root"
-    exit
-fi
+require_root
 
 find_output_dir(){
     if [ -d "/storage/" ]
     then
         output_dir="/storage/backup"
     else
-        if [ -s "/backup_key" ] 
+        if [ -s "/backup_key" ]
         then
             echo -e "Host strych.mikr.us\nuser $HOSTNAME\nIdentityFile /backup_key" >> ~/.ssh/config
             output_dir="strych.mikr.us:~/backup"

@@ -3,13 +3,11 @@
 
 # Autor: Radoslaw Karasinski, Grzegorz Ćwikliński, Szymon Hryszko, Artur Stefański
 
-# if no sudo, then exit
-if [ "$(id -u)" != "0" ]; then
-	echo "Musisz uruchomić ten skrypt jako root" 1>&2
-	echo "Spróbuj sudo $0"
-	exit 1
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-fi
+require_root
 
 _check_if_user_exits() {
     given_user=$1
@@ -97,4 +95,4 @@ if [ -d /opt/noobs ]; then
    sudo chown -R $username:$username /home/$username/noobs
 fi
 
-echo "Pomyślnie stworzono użytkownia ${username}."
+msg_ok "Pomyślnie stworzono użytkownia ${username}."

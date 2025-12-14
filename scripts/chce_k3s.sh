@@ -1,10 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # instalacja k3s (lLghtweight Kubernetes) na mikrusie
 # Autor: Maciej Loper @2023.05
 # Edytowane przez: Andrzej Szczepaniak @2023.11
 # Edytowane, ze wzgledu na to, ze dual-stack nie dziala na najnowszej wersji K3s
 # Edytowane przez: TORGiren @2025.06
 # Edytowane, dodanie możliwości wyboru wersji K3s i ustawienie domyślnej wersji na "stable"
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 VERSION=${1:-"stable"}
 
@@ -79,6 +83,6 @@ EOF
 /bin/systemctl daemon-reload
 
 # wlaczenie serwisu k3s oraz start uslugi k3s
-systemctl enable --now k3s.service
+service_enable_now k3s.service
 
 exit

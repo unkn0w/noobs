@@ -1,113 +1,79 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # NEXTCLOUD installation script
 # Autors: Mariusz 'maniek205' Kowalski, Marcin Wozniak
+# Refactored: noobs community (v2.0.0)
 
-USERNAME="admin"
-PASSWORD=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-DB_USER=root
-DB_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
+msg_info "Sprawdzenie uprawnien"
+require_root
 
-NEXT_CLOUD_USER="admin"
-NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
+# Generowanie hasel
+DB_USER="nextcloud"
+DB_PASS="$(generate_random_string 16)"
+NC_USER="admin"
+NC_PASS="$(generate_random_string 16)"
 
-#Set Timezone to prevent installation interruption
+# Ustawienie strefy czasowej
 [[ ! -f /etc/localtime ]] && ln -snf /usr/share/zoneinfo/Poland /etc/localtime && echo "Etc/UTC" > /etc/timezone
 
-#Installing prerequisites https://docs.nextcloud.com/server/latest/admin_manual/installation/example_ubuntu.html
-apt update
-apt install -y apache2 mariadb-server libapache2-mod-php8.1
-apt install -y php8.1-gd php8.1-mysql php8.1-curl php8.1-mbstring php8.1-intl
-apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip php8.1-fpm
+msg_info "Aktualizacja pakietow"
+pkg_update
 
-#Configuring mariaDB
-#/etc/init.d/mysql start
-mysql -u"$DB_USER" -p"$DB_PASS" -e "CREATE USER '$USERNAME'@'localhost' IDENTIFIED BY '$PASSWORD';
-CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost';
-FLUSH PRIVILEGES;"
+msg_info "Instalacja pakietow"
+pkg_install apache2 mariadb-server libapache2-mod-php8.1 sudo wget tar curl
+php_install_packages "8.1" gd mysql curl mbstring intl gmp bcmath imagick xml zip fpm
 
-#Downloading nextcloud tar.bz2 file
-apt install -y wget tar curl
+msg_info "Konfiguracja bazy danych"
+mysql_create_db_user "nextcloud" "$DB_USER" "$DB_PASS"
 
-nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
+msg_info "Pobieranie Nextcloud"
+nextcloud_link=$(curl -s https://nextcloud.com/install/\#instructions-server \
 	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"' | sed 's/"//g')
-nextcloud_tmp="/tmp/nextcloud.tar.bz2"
+download_and_extract "$nextcloud_link" "/var/www/html" 0
 
-wget "$nextcloud_link" -O "$nextcloud_tmp"
-tar -xf "$nextcloud_tmp"
-
-#Copy nextcloud to apache folder
-rm /var/www/html/index.html
-echo "Copying nextcloud to apache folder..."
-cp -r nextcloud/ /var/www/html/
-rm -v "$nextcloud_tmp"
-echo "Done",
-#Apache config
-cat > /etc/apache2/sites-available/nextcloud.conf <<EOL
-Alias /nextcloud "/var/www/html/nextcloud/"
-
-<Directory /var/www/html/nextcloud/>
-  Satisfy Any
-  Require all granted
-  AllowOverride All
-  Options FollowSymLinks MultiViews
-
-  <IfModule mod_dav.c>
-    Dav off
-  </IfModule>
-</Directory>
-EOL
-
-a2ensite nextcloud.conf
-a2enmod rewrite
-a2enmod headers
-a2enmod env
-a2enmod dir
-a2enmod mime
-a2enmod setenvif
-a2enmod proxy_fcgi setenvif
-a2enconf php8.1-fpm
-service apache2 restart
-
+msg_info "Konfiguracja Apache"
+rm -f /var/www/html/index.html
 chown -R www-data:www-data /var/www/html/
 
-apt install -y sudo
+apache_create_alias "nextcloud" "/nextcloud" "/var/www/html/nextcloud"
 
-cd /var/www/html/nextcloud  || exit
-sudo -u www-data php occ  maintenance:install --database \
-"mysql" --database-name "nextcloud"  --database-user "$USERNAME" --database-pass \
-"$PASSWORD" --admin-user "$NEXT_CLOUD_USER" --admin-pass "$NEXT_CLOUD_PASS"
+a2enmod rewrite headers env dir mime setenvif proxy_fcgi
+a2enconf php8.1-fpm
+service_restart apache2
 
-# czy user posiada /storage/?
-if [ -d /storage ]; then
-    echo "Znalazłem /storage - przenoszę dane do /storage/nextcloud_data";
-    mkdir /storage/nextcloud_data
+msg_info "Instalacja Nextcloud"
+cd /var/www/html/nextcloud || die "Nie mozna przejsc do katalogu nextcloud"
+sudo -u www-data php occ maintenance:install --database \
+"mysql" --database-name "nextcloud" --database-user "$DB_USER" --database-pass \
+"$DB_PASS" --admin-user "$NC_USER" --admin-pass "$NC_PASS"
+
+# Sprawdzenie czy istnieje /storage
+if [[ -d /storage ]]; then
+    msg_info "Przenoszenie danych do /storage/nextcloud_data"
+    mkdir -p /storage/nextcloud_data
     rsync -av /var/www/html/nextcloud/data/ /storage/nextcloud_data/
     chown -R www-data:www-data /storage/nextcloud_data/
     rm -rf /var/www/html/nextcloud/data
     ln -s /storage/nextcloud_data /var/www/html/nextcloud/data
 fi
 
-echo "
-== Dostępy na których działa Nextcloud ==
-MYSQL_USERNAME=$USERNAME
-MYSQL_PASSWORD=$PASSWORD
+msg_ok "Nextcloud zainstalowany pomyslnie!"
 
-
+cat > /root/nextcloud.txt <<EOL
 == Dane do bazy danych ==
 DB_USER=$DB_USER
 DB_PASS=$DB_PASS
 
-== Dane do Logowania do panelu ==
-NC_USER=$NEXT_CLOUD_USER
-NC_PASS=$NEXT_CLOUD_PASS
+== Dane do logowania do panelu ==
+NC_USER=$NC_USER
+NC_PASS=$NC_PASS
 
-Bardzo ważne:
-Edytuj plik /var/www/html/nextcloud/config/config.php
-Znajdź linijkę z tekstem 'localhost' i ponieżej dopisz swoją domenę na której będzie działać Nextcloud.
-
-P.S. Zapisałem te dane do /root/nextcloud.txt
-" | tee /root/nextcloud.txt
+Wazne: Edytuj plik /var/www/html/nextcloud/config/config.php
+i dodaj swoja domene do tablicy 'trusted_domains'.
+EOL
 
 chmod 600 /root/nextcloud.txt
+msg_info "Szczegoly zapisane w /root/nextcloud.txt"

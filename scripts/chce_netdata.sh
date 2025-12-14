@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Create netdata instance
 # Autor: Radoslaw Karasinski
 # Supported parameters:
@@ -8,6 +8,9 @@
 #  --url URL
 #  --duplicate
 
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
@@ -43,7 +46,7 @@ if [ -n "$duplicate" ]; then
 fi
 
 echo "Install required packages."
-apt install -y curl
+pkg_install curl
 echo
 
 # install netdata
@@ -51,4 +54,4 @@ bash <(curl -Ss https://my-netdata.io/kickstart.sh) "${extra_args[@]}"
 
 # change default netdata port and restart service
 sed -i "s|# default port = 19999|default port = $port|" /etc/netdata/netdata.conf
-service netdata restart
+service_restart netdata

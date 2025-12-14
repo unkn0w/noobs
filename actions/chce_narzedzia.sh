@@ -1,6 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Instalacja przydatnych programow
 # Autor: Maciej Loper
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 PKG1="vim tree multitail"
 PKG2="unattended-upgrades ncdu silversearcher-ag"
@@ -22,18 +26,13 @@ usage() {
 # zainstaluj paczke nr X
 install_pX() {
     pkg="PKG${1}"
-    sudo apt install -y ${!pkg}
-}
-
-# aktualizuj repozytoria
-update_repo() {
-    sudo apt update
+    pkg_install ${!pkg}
 }
 
 [ "$#" -lt 1 ] && usage
 
 # sprawdz uprawnienia sudo
-sudo -l &>/dev/null || { echo "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
+require_sudo
 
 refreshed=false
 
@@ -41,7 +40,7 @@ for arg in "$@"; do
     # sprawdz parametr
     echo "$AVAILABLE" | grep -q "$arg" || { usage; }
     # aktualizuj tylko raz
-    $refreshed || update_repo
+    $refreshed || pkg_update
     # zainstaluj paczke nr X
     install_pX "$arg"
     echo

@@ -1,35 +1,30 @@
-#!/bin/bash
-#Michał Giza
+#!/usr/bin/env bash
+# Michał Giza
+# Refactored: noobs community (v2.0.0)
 
-echo -e "\e[1;32mSprawdzenie uprawnień \e[0m"
-if [ $EUID != 0 ]
-then
-	echo "Uruchom poprzez sudo bash chce_moodle.sh lub jako root"
-    exit
-fi
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-echo -e "\e[1;32mAktualizacja pakietów \e[0m"
-apt update
+msg_info "Sprawdzenie uprawnien"
+require_root
 
-echo -e "\e[1;32mDodanie repozytorium z PHP \e[0m"
-apt install software-properties-common -y
-add-apt-repository ppa:ondrej/php -y
-apt update
+msg_info "Aktualizacja pakietow"
+pkg_update
 
-echo -e "\e[1;32mInstalacja pakietów \e[0m"
-apt install vsftpd nginx php7.4-fpm php7.4-common php7.4-iconv php7.4-mysql php7.4-curl php7.4-mbstring php7.4-xmlrpc php7.4-soap php7.4-zip php7.4-gd php7.4-xml php7.4-intl php7.4-json libpcre3 libpcre3-dev graphviz aspell ghostscript clamav mariadb-server -y
+msg_info "Dodanie repozytorium z PHP"
+add_ppa_repo "ondrej/php"
 
-echo -e "\e[1;32mBlokada dostępu SSH \e[0m"
-cat >> /etc/ssh/sshd_config <<EOL
-Match User moodle
-ChrootDirectory /home/moodle
-EOL
+msg_info "Instalacja pakietow"
+pkg_install vsftpd nginx libpcre3 libpcre3-dev graphviz aspell ghostscript clamav mariadb-server
+php_install_packages "7.4" fpm common mysql curl mbstring xmlrpc soap zip gd xml intl json
 
-echo -e "\e[1;32mRestart SSH \e[0m"
-systemctl restart ssh
+msg_info "Tworzenie uzytkownika moodle"
+create_web_user "moodle" "/home/moodle" "/bin/bash" true
+SSH_PASS="$REPLY"
 
-echo -e "\e[1;32mKonfiguracja FTP \e[0m"
-cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+msg_info "Konfiguracja FTP"
+backup_file /etc/vsftpd.conf
 cat > /etc/vsftpd.conf <<EOL
 listen=NO
 listen_ipv6=YES
@@ -52,40 +47,18 @@ pasv_enable=Yes
 pasv_min_port=40000
 pasv_max_port=40100
 EOL
+service_restart vsftpd
 
-echo -e "\e[1;32mRestart vsftpd \e[0m"
-systemctl restart vsftpd
+msg_info "Zmiana ustawien PHP"
+php_configure "7.4" "max_input_vars" "5000" "fpm"
 
-echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
-SSH_PASS="$(openssl rand -base64 12)"
-useradd -m moodle -s /bin/bash
-echo moodle:${SSH_PASS} | chpasswd
+msg_info "Tworzenie puli PHP-FPM"
+php_fpm_create_pool "7.4" "moodle" "moodle"
+PHP_SOCKET="$REPLY"
+service_restart php7.4-fpm
 
-echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
-cat >> /etc/php/7.4/fpm/php.ini <<EOL
-max_input_vars = 5000
-EOL
-
-echo -e "\e[1;32mUtworzenie dedykowanego PHP pool \e[0m"
-cp /etc/php/7.4/fpm/pool.d/www.conf /etc/php/7.4/fpm/pool.d/moodle.conf
-cat > /etc/php/7.4/fpm/pool.d/moodle.conf <<EOL
-[moodle]
-user = moodle
-group = moodle
-listen = /run/php/moodle.sock
-listen.owner = www-data
-listen.group = www-data
-pm = dynamic
-pm.max_children = 5
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-EOL
-
-echo -e "\e[1;32mRestart PHP-FPM \e[0m"
-systemctl restart php7.4-fpm
-
-echo -e "\e[1;32mZmiana konfiguracji MySQL \e[0m"
+msg_info "Konfiguracja MySQL"
+backup_file /etc/mysql/mariadb.conf.d/50-server.cnf
 cat > /etc/mysql/mariadb.conf.d/50-server.cnf <<EOL
 [server]
 [mysqld]
@@ -94,7 +67,6 @@ innodb_large_prefix = 1
 user                    = mysql
 pid-file                = /run/mysqld/mysqld.pid
 socket                  = /run/mysqld/mysqld.sock
-#port                   = 3306
 basedir                 = /usr
 datadir                 = /var/lib/mysql
 tmpdir                  = /tmp
@@ -109,68 +81,39 @@ collation-server      = utf8mb4_general_ci
 [mariadb]
 [mariadb-10.3]
 EOL
+service_restart mariadb
 
-echo -e "\e[1;32mRestart MySQL \e[0m"
-systemctl restart mariadb
+msg_info "Tworzenie bazy danych"
+mysql_create_db_user "moodle" "moodle"
+DB_PASS="$REPLY"
 
-echo -e "\e[1;32mTworzenie bazy i usera \e[0m"
-HASLO="$(openssl rand -base64 12)"
-mysql -e "CREATE DATABASE moodle;"
-mysql -e "CREATE USER 'moodle'@'localhost' IDENTIFIED BY '${HASLO}'"
-mysql -e "GRANT ALL PRIVILEGES ON moodle.* TO 'moodle'@'localhost';"
-mysql -e "FLUSH PRIVILEGES;"
-
-echo -e "\e[1;32mPobieranie Moodle \e[0m"
-wget https://download.moodle.org/stable311/moodle-3.11.2.tgz -O /tmp/moodle.tgz
-
-echo -e "\e[1;32mRozpakowanie archiwum \e[0m"
-tar -zvxf /tmp/moodle.tgz -C /home/moodle
+msg_info "Pobieranie i instalacja Moodle"
+download_and_extract "https://download.moodle.org/stable311/moodle-3.11.2.tgz" "/home/moodle" 0
 mv /home/moodle/moodle /home/moodle/public_html
+chown -R moodle:moodle /home/moodle/public_html
+chmod -R 755 /home/moodle/public_html
 
-echo -e "\e[1;32mZmiana uprawnień \e[0m"
-chown moodle:moodle -R /home/moodle/public_html
-chmod 755 -R /home/moodle/public_html
+msg_info "Tworzenie katalogu danych"
+mkdir -p /var/moodledata
+chown -R moodle:moodle /var/moodledata
+chmod -R 755 /var/moodledata
 
-echo -e "\e[1;32mUtworzenie katalogu na dane użytkowników \e[0m"
-mkdir /var/moodledata
-chmod 755 -R /var/moodledata
-chown moodle:moodle -R /var/moodledata
+msg_info "Konfiguracja Nginx"
+webserver_disable_site "nginx" "default"
+nginx_create_server_block "moodle" "/home/moodle/public_html" "$PHP_SOCKET" "moodle"
+webserver_enable_site "nginx" "moodle"
 
-echo -e "\e[1;32mDodanie konfiguracji Nginx \e[0m"
-unlink /etc/nginx/sites-enabled/default
-cat > /etc/nginx/sites-available/moodle <<EOL
-server{
-   listen 80;
-    server_name _;
-    root        /home/moodle/public_html;
-    index       index.php;
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-    location ~ ^(.+\.php)(.*)$ {
-        fastcgi_split_path_info ^(.+\.php)(.*)$;
-        fastcgi_index           index.php;
-        fastcgi_pass           unix:/run/php/moodle.sock;
-        include                 /etc/nginx/mime.types;
-        include                 fastcgi_params;
-        fastcgi_param           PATH_INFO       \$fastcgi_path_info;
-        fastcgi_param           SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-}
-}
-EOL
-ln -s /etc/nginx/sites-available/moodle /etc/nginx/sites-enabled/
-
-echo -e "\e[1;32mRestart Nginx \e[0m"
-systemctl restart nginx
-
-echo -e "\e[1;32mDalsze instrukcje w pliku moodle.txt \e[0m"
+msg_ok "Moodle zainstalowane pomyslnie!"
 GATEWAY="$(/sbin/ip route | awk '/default/ { print $3 }')"
 IP="$(ip route get ${GATEWAY} | grep -oP 'src \K[^ ]+')"
+
 cat > moodle.txt <<EOL
 Moodle jest gotowe do instalacji pod http://${IP}.
 Katalog danych Moodle to /var/moodledata
 Wybierz MariaDB jako typ bazy.
-Nazwa bazy i użytkownika to moodle.
-Hasło do bazy: ${HASLO}
-Hasło FTP dla lokalnego użytkownika moodle: ${SSH_PASS}
+Nazwa bazy i uzytkownika: moodle
+Haslo do bazy: ${DB_PASS}
+Haslo FTP/SSH dla uzytkownika moodle: ${SSH_PASS}
 EOL
+
+msg_info "Szczegoly zapisane w moodle.txt"

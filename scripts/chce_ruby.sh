@@ -1,15 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # asdf + ruby
 # Autor: Mikołaj Kamiński (mikolaj-kaminski.com)
 
-if [[ $EUID -ne 0 ]]; then
-    echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_ruby.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
-    exit 1
-fi
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+
+require_root
 
 # Instalacja Git
-apt update
-apt install -y git
+pkg_update
+pkg_install git
 
 # Instalacja asdf
 git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.8.1
@@ -36,7 +37,7 @@ fi
 asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git
 
 # Instalacja zależności dla Ruby
-apt install -y autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev curl
+pkg_install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm6 libgdbm-dev libdb-dev curl
 
 # Instalacja najnowszej wersji Ruby
 latest_ruby_version=`asdf latest ruby`

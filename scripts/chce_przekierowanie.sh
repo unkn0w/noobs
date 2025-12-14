@@ -1,13 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Autor: Krzysztof Siek
 #Przekierowanie portów urządzeń zapiętych po vpn na publiczne port mikrusowe
 
-
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 FILE=/root/openvpn-install.sh
 if [ -f "$FILE" ]; then
     echo "Openvpn jest zainstalowany."
-else 
+else
     echo "zainstaluj openvpn(cd /opt/noobs/scripts && ./chce_openvpn.sh)."
     exit
 fi

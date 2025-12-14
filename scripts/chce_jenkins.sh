@@ -1,43 +1,50 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Jenkins na mikrusowym porcie
 # Autor: Maciej Loper, Radoslaw Karasinski, pablowyourmind
+# Refactored: noobs community (v2.0.0)
 
-status() {
-    echo "[x] $1"
-}
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-read -p "Podaj port, na którym ma działać Jenkins. Brak podania numeru spowoduje ustawienie portu 80:" port
+msg_info "Sprawdzenie uprawnien"
+require_root
+
+# Pobranie portu od uzytkownika
+read -p "Podaj port dla Jenkins (domyslnie 80): " port
 port=${port:-80}
-status "Jenkins będzie nasłuchiwał na porcie $port"
+msg_info "Jenkins bedzie nasluchiwac na porcie $port"
 
-status "instalacja wymaganych pakietow"
-sudo apt install -y gnupg
-echo
+msg_info "Instalacja wymaganych pakietow"
+pkg_install gnupg
 
-status "dodawanie repozytorium Jenkinsa"
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo apt-key add -
-sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+msg_info "Dodawanie repozytorium Jenkins"
+add_repository_with_key \
+    "http://pkg.jenkins.io/debian-stable binary/" \
+    "jenkins.list" \
+    "https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key"
 
-status "aktualizacja repozytoriow"
-sudo apt update
-echo
+msg_info "Instalacja Java JRE17 i Jenkins"
+pkg_update
+pkg_install openjdk-17-jre-headless jenkins
 
-status "instalacja Jenkinsa i Javy JRE17"
-sudo apt install -y openjdk-17-jre-headless
-sudo apt install -y jenkins
-echo
+msg_info "Konfiguracja Jenkins"
+service_stop jenkins
 
-status "poprawki w konfiguracji"
-sudo systemctl stop jenkins
+# Modyfikacja konfiguracji
+backup_file /lib/systemd/system/jenkins.service
 sed -i 's|User=jenkins|User=root|' /lib/systemd/system/jenkins.service
 sed -i "s|JENKINS_PORT=8080|JENKINS_PORT=$port|" /lib/systemd/system/jenkins.service
 sed -i 's|JAVA_OPTS=-Djava.awt.headless=true|JAVA_OPTS=-Djava.awt.headless=true -Xms256m -Xmx512m|' /lib/systemd/system/jenkins.service
-sudo systemctl daemon-reload
-echo
 
-status "uruchomienie"
-sudo systemctl start jenkins
-echo
+systemctl daemon-reload
 
-echo -n "Gotowe. Jenkins nasłuchuje na porcie $port. Hasło początkowe: "
-cat /var/lib/jenkins/secrets/initialAdminPassword
+msg_info "Uruchamianie Jenkins"
+service_start jenkins
+
+msg_ok "Jenkins zainstalowany pomyslnie!"
+msg_info "Port: $port"
+
+if [[ -f /var/lib/jenkins/secrets/initialAdminPassword ]]; then
+    msg_info "Haslo poczatkowe: $(cat /var/lib/jenkins/secrets/initialAdminPassword)"
+fi

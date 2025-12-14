@@ -1,36 +1,30 @@
-#!/bin/bash
-#Michał Giza
+#!/usr/bin/env bash
+# Michał Giza
+# Refactored: noobs community (v2.0.0)
 
-echo -e "\e[1;32mSprawdzenie uprawnień \e[0m"
-if [ $EUID != 0 ]
-then
-	echo "Uruchom poprzez sudo bash chce_drupal.sh lub jako root"
-    exit
-fi
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
+msg_info "Sprawdzenie uprawnien"
+require_root
 
-echo -e "\e[1;32mAktualizacja pakietów \e[0m"
-apt update
+msg_info "Aktualizacja pakietow"
+pkg_update
 
-echo -e "\e[1;32mDodanie repozytorium z PHP \e[0m"
-apt install software-properties-common -y
-add-apt-repository ppa:ondrej/php -y
-apt update
+msg_info "Dodanie repozytorium z PHP"
+add_ppa_repo "ondrej/php"
 
-echo -e "\e[1;32mInstalacja pakietów \e[0m"
-apt install vsftpd unzip nginx mariadb-server php8.0-fpm php8.0-dom php8.0-gd php8.0-xml php8.0-mysql php8.0-mbstring -y
+msg_info "Instalacja pakietow"
+pkg_install vsftpd unzip nginx mariadb-server
+php_install_packages "8.0" fpm dom gd xml mysql mbstring
 
-echo -e "\e[1;32mBlokada dostępu SSH \e[0m"
-cat >> /etc/ssh/sshd_config <<EOL
-Match User drupal
-ChrootDirectory /home/drupal
-EOL
+msg_info "Tworzenie uzytkownika drupal"
+create_web_user "drupal" "/home/drupal" "/bin/bash" true
+SSH_PASS="$REPLY"
 
-echo -e "\e[1;32mRestart SSH \e[0m"
-systemctl restart ssh
-
-echo -e "\e[1;32mKonfiguracja FTP \e[0m"
-cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+msg_info "Konfiguracja FTP"
+backup_file /etc/vsftpd.conf
 cat > /etc/vsftpd.conf <<EOL
 listen=NO
 listen_ipv6=YES
@@ -53,105 +47,40 @@ pasv_enable=Yes
 pasv_min_port=40000
 pasv_max_port=40100
 EOL
+service_restart vsftpd
 
-echo -e "\e[1;32mRestart vsftpd \e[0m"
-systemctl restart vsftpd
+msg_info "Tworzenie bazy danych"
+mysql_create_db_user "drupal" "drupal"
+DB_PASS="$REPLY"
 
-echo -e "\e[1;32mTworzenie bazy i usera \e[0m"
-HASLO="$(openssl rand -base64 12)"
-mysql -e "CREATE DATABASE drupal;"
-mysql -e "CREATE USER 'drupal'@'localhost' IDENTIFIED BY '${HASLO}';"
-mysql -e "GRANT ALL ON drupal.* TO 'drupal'@'localhost' WITH GRANT OPTION;"
-mysql -e "FLUSH PRIVILEGES;"
+msg_info "Zmiana ustawien PHP"
+php_configure "8.0" "memory_limit" "768M" "fpm"
+php_configure "8.0" "max_execution_time" "3600" "fpm"
+php_configure "8.0" "max_input_time" "3600" "fpm"
 
-echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
-SSH_PASS="$(openssl rand -base64 12)"
-useradd -m drupal -s /bin/bash
-echo drupal:${SSH_PASS} | chpasswd
+msg_info "Tworzenie puli PHP-FPM"
+php_fpm_create_pool "8.0" "drupal" "drupal"
+PHP_SOCKET="$REPLY"
+service_restart php8.0-fpm
 
-echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
-sed -i 's,^memory_limit =.*$,memory_limit = 768M,' /etc/php/8.0/fpm/php.ini
-sed -i 's,^max_execution_time =.*$,max_execution_time = 3600,' /etc/php/8.0/fpm/php.ini
-sed -i 's,^max_input_time =.*$,max_input_time = 3600,' /etc/php/8.0/fpm/php.ini
+msg_info "Pobieranie Drupal"
+download_and_extract "https://ftp.drupal.org/files/projects/drupal-9.2.8.zip" "/home/drupal/public_html" 0
+chown -R drupal:drupal /home/drupal/public_html
 
-echo -e "\e[1;32mUtworzenie dedykowanego PHP pool \e[0m"
-cp /etc/php/8.0/fpm/pool.d/www.conf /etc/php/8.0/fpm/pool.d/drupal.conf
-cat > /etc/php/8.0/fpm/pool.d/drupal.conf <<EOL
-[drupal]
-user = drupal
-group = drupal
-listen = /run/php/drupal.sock
-listen.owner = www-data
-listen.group = www-data
-pm = dynamic
-pm.max_children = 5
-pm.start_servers = 2
-pm.min_spare_servers = 1
-pm.max_spare_servers = 3
-EOL
+msg_info "Konfiguracja Nginx"
+webserver_disable_site "nginx" "default"
+nginx_create_server_block "drupal" "/home/drupal/public_html" "$PHP_SOCKET" "drupal"
+webserver_enable_site "nginx" "drupal"
 
-echo -e "\e[1;32mRestart PHP \e[0m"
-systemctl restart php8.0-fpm
-
-echo -e "\e[1;32mPobieranie Drupal \e[0m"
-su - drupal -c "wget https://ftp.drupal.org/files/projects/drupal-9.2.8.zip"
-
-echo -e "\e[1;32mWypakowywanie do /home/drupal/public_html \e[0m"
-su - drupal -c "unzip drupal-9.2.8.zip"
-su - drupal -c "rm drupal-9.2.8.zip"
-su - drupal -c "mv drupal-9.2.8 public_html"
-
-echo -e "\e[1;32mDodanie konfiguracji Nginx \e[0m"
-unlink /etc/nginx/sites-enabled/default
-cat > /etc/nginx/sites-available/drupal <<EOL
-server {
-    server_name _;
-    root /home/drupal/public_html;
-    location / {
-        try_files \$uri /index.php?\$query_string;
-    }
-
-    location @rewrite {
-        rewrite ^ /index.php;
-    }
-    location ~ '\.php\$|^/update.php' {
-        fastcgi_split_path_info ^(.+?\.php)(|/.*)\$;
-        try_files \$fastcgi_script_name =404;
-        include fastcgi_params;
-        fastcgi_param HTTP_PROXY "";
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        fastcgi_param PATH_INFO \$fastcgi_path_info;
-        fastcgi_param QUERY_STRING \$query_string;
-        fastcgi_intercept_errors on;
-        fastcgi_pass unix:/run/php/drupal.sock;
-    }
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)\$ {
-        try_files \$uri @rewrite;
-        expires max;
-        log_not_found off;
-    }
-    location ~ ^/sites/.*/files/styles/ {
-        try_files \$uri @rewrite;
-    }
-    location ~ ^(/[a-z\-]+)?/system/files/ {
-        try_files \$uri /index.php?\$query_string;
-    }
-    if (\$request_uri ~* "^(.*/)index\.php/(.*)") {
-        return 307 \$1\$2;
-    }
-}
-EOL
-ln -s /etc/nginx/sites-available/drupal /etc/nginx/sites-enabled/
-
-echo -e "\e[1;32mRestart Nginx \e[0m"
-systemctl restart nginx
-
-echo -e "\e[1;32mDalsze instrukcje w pliku drupal.txt \e[0m"
+msg_ok "Drupal zainstalowany pomyslnie!"
 GATEWAY="$(/sbin/ip route | awk '/default/ { print $3 }')"
 IP="$(ip route get ${GATEWAY} | grep -oP 'src \K[^ ]+')"
+
 cat > drupal.txt <<EOL
 Drupal jest gotowy do instalacji pod http://${IP}.
-Nazwa bazy i użytkownika to drupal.
-Hasło do bazy: ${HASLO}
-Hasło FTP dla lokalnego użytkownika drupal: ${SSH_PASS}
+Nazwa bazy i uzytkownika: drupal
+Haslo do bazy: ${DB_PASS}
+Haslo FTP/SSH dla uzytkownika drupal: ${SSH_PASS}
 EOL
+
+msg_info "Szczegoly zapisane w drupal.txt"

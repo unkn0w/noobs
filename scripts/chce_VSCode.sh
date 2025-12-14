@@ -1,9 +1,13 @@
-#!/bin/bash
-# Skrypt stawia najnowszą wersję VSCode Server
+#!/usr/bin/env bash
+# Skrypt stawia najnowszą wersję VSCode Server
 # Autor: Jakub 'unknow' Mrugalski
 # Poprawki: Maciej Loper @2021-10
 
 # uzycie: ./chce_VSCode.sh [port]
+
+# Zaladuj biblioteke noobs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 # ustawienia
 APP_NAME="code-server"
@@ -50,8 +54,8 @@ sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - 
 port="${1:-80}"
 status "sprawdzanie portu $port"
 [ "$port" -eq "$port" ] 2>/dev/null || { echo "Port musi byc liczba!"; exit 2; }
-[ "$port" -le 1024 ] && as_root=true || as_root=false 
-sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. Skladnia: $0 [port]."; } 
+[ "$port" -le 1024 ] && as_root=true || as_root=false
+sudo lsof -i:"$port" | grep -q PID && { err "Port '$port' jest zajety, uzyj innego. Skladnia: $0 [port]."; }
 
 # pobierz linka do najnowszej paczki
 latest="$(curl -Ls https://api.github.com/repos/cdr/code-server/releases/latest | grep -Eo 'https://.+_amd64.deb')"
@@ -63,8 +67,8 @@ status "pobieranie instalatora"
 # sprawdz czy instnieje i zainstaluj paczkę
 dpkg --status code-server &>/dev/null || sudo dpkg -i $PKG_FILE
 
-# wygeneruj losowe, 12 znakowe hasło
-pass="$(head -c255 /dev/urandom | base64 | grep -Eoi '[a-z0-9]{12}' | head -n1)"
+# wygeneruj losowe, 12 znakowe hasło (uzycie funkcji bibliotecznej)
+pass=$(generate_password 12)
 status "wygenerowane haslo: $pass"
 
 # utwórz hosta o nazwie 'globalipv6' reprezentującego globalny adres IPv6
@@ -97,12 +101,12 @@ fi
 # sprzatanie
 status "czyszczenie instalatora"
 rm "$PKG_FILE"
-sudo systemctl stop code-server@"$user" &>/dev/null
-sudo systemctl stop code-server@root &>/dev/null
+service_stop code-server@"$user" &>/dev/null
+service_stop code-server@root &>/dev/null
 
 # uruchom VSCode
 status 'uruchomienie aplikacji'
-sudo systemctl start code-server@"$user"
+service_start code-server@"$user"
 
 # pokaz status
 status 'sprawdzenie statusu'
