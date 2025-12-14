@@ -2,7 +2,7 @@
 # =============================================================================
 # noobs_lib.sh - Wspolna biblioteka dla projektu noobs
 # =============================================================================
-# Autor: noobs community
+# Autor: Bartłomiej Zimny (github.com/jash90, bartlomiejzimny@outlook.com)
 # Wersja: 1.0.0
 # Licencja: MIT
 #
