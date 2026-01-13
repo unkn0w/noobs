@@ -2,10 +2,9 @@
 # Autor: Jakub Suchenek (itsanon.xyz)
 #
 # Przed przystąpieniem do instalacji, skrypt sprawdza:
-# 1. Czy jest uruchomiony jako root
-# 2. Czy Tailscale jest już zainstalowany
-# 3. Czy curl jest zainstalowany, jeśli nie to go instaluje
-# 4. Czy system operacyjny to Ubuntu 20.04 lub nowszy
+# 1. Czy jest uruchomiony jako root.
+# 2. Czy Tailscale jest już zainstalowany.
+# 3. Czy system operacyjny to Ubuntu 20.04 lub nowszy.
 
 if [[ $EUID -ne 0 ]]; then
     echo "Ten skrypt musi być uruchomiony jako root."
