@@ -43,7 +43,7 @@ if [[ "${VERSION_ID:0:2}" -lt 20 ]]; then
     exit 1
 fi
 
-echo "Wykryto instalacje Ubuntu '$UBUNTU_CODENAME'."
+echo "Wykryto instalację Ubuntu '$UBUNTU_CODENAME'."
 
 echo "Pobieranie klucza GPG Tailscale..."
 curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
