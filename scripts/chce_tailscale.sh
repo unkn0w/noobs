@@ -1,7 +1,7 @@
 #!/bin/bash
 # Autor: Jakub Suchenek (itsanon.xyz)
 #
-# Przed przysąpieniem do isntalacji, skrypt sprawdza:
+# Przed przystąpieniem do instalacji, skrypt sprawdza:
 # 1. Czy jest uruchomiony jako root
 # 2. Czy Tailscale jest już zainstalowany
 # 3. Czy curl jest zainstalowany, jeśli nie to go instaluje
