@@ -17,15 +17,6 @@ if command -v tailscale &> /dev/null; then
     exit 0
 fi
 
-if ! command -v curl &> /dev/null; then
-    echo "Breakuje curl, instaluję..."
-    apt-get update && apt-get install -y curl
-    if [[ $? -ne 0 ]]; then
-        echo "Nie udało się zainstalować curl! Zobacz co się stało powyżej."
-        exit 1
-    fi
-fi
-
 if [ ! -f /etc/os-release ]; then
     echo "Nie można wykryć systemu operacyjnego!"
     exit 1
@@ -41,6 +32,15 @@ fi
 if [[ "${VERSION_ID:0:2}" -lt 20 ]]; then
     echo "Ten skrypt działa tylko na Ubuntu 20.04 lub nowszym!"
     exit 1
+fi
+
+if ! command -v curl &> /dev/null; then
+    echo "Breakuje curl, instaluję..."
+    apt-get update && apt-get install -y curl
+    if [[ $? -ne 0 ]]; then
+        echo "Nie udało się zainstalować curl! Zobacz co się stało powyżej."
+        exit 1
+    fi
 fi
 
 echo "Wykryto instalację Ubuntu '$UBUNTU_CODENAME'."
