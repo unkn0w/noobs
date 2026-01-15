@@ -28,6 +28,9 @@ if [ ! "$ID" == "ubuntu" ]; then
     exit 1
 fi
 
+# Sposób instalacji jest analogcziny tylko dla wersji Ubuntu 20.04 i nowszych.
+# Starsze wersje mają inne, indywidualne metody instalacji
+# oraz inne klucze GPG.
 if [[ "${VERSION_ID:0:2}" -lt 20 ]]; then
     echo "Ten skrypt działa tylko na Ubuntu 20.04 lub nowszym!"
     exit 1
