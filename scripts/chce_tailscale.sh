@@ -45,14 +45,14 @@ fi
 echo "Wykryto instalację Ubuntu '$UBUNTU_CODENAME'."
 
 echo "Pobieranie klucza GPG Tailscale..."
-curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.noarmor.gpg | sudo tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
+curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
 if [[ $? -ne 0 ]]; then
     echo "Nie udało się pobrać klucza GPG Tailscale!"
     exit 1
 fi
 
 echo "Dodawanie repozytorium Tailscale..."
-curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.tailscale-keyring.list | sudo tee /etc/apt/sources.list.d/tailscale.list
+curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
 if [[ $? -ne 0 ]]; then
     echo "Nie udało się dodać repozytorium Tailscale!"
     exit 1
