@@ -87,7 +87,7 @@ EOF
 docker rm -f n8n >/dev/null 2>&1
 docker rm -f watchtower_n8n >/dev/null 2>&1
 docker pull n8nio/n8n:latest
-docker pull containrrr/watchtower
+docker pull nickfedor/watchtower
 
 docker run -itd \
   --memory=$[$availableMemory-100]m \
@@ -116,7 +116,7 @@ docker run -d \
   --restart unless-stopped \
   -e WATCHTOWER_POLL_INTERVAL=259200 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower \
+  nickfedor/watchtower \
   n8n --cleanup
 
 echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
