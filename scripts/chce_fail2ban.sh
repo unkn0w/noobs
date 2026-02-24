@@ -1,6 +1,7 @@
 #!/bin/bash
 # fail2ban
 # Autor: Bartlomiej Szyszko
+# Edycja: ThomasMaven
 
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
 if [[ $EUID -ne 0 ]]; then
