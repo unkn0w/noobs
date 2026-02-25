@@ -38,6 +38,12 @@ while getopts "p:b:f:m:h" opt; do
    esac
 done
 
+if [[ -z "$SSH_PORT" ]]; then
+   echo -e "\033[1;31mBlad:\033[0m Nie podano portu SSH. Uzyj flagi -p PORT."
+   echo ""
+   usage
+fi
+
 apt update
 apt install -y fail2ban
 
