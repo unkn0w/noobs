@@ -3,6 +3,7 @@
 # Współautor: Jakub 'unknow' Mrugalski
 # Aktualizacja: Dawid Kasza
 # Aktualizacja2: Michał Skórcz
+# Aktualizacja3: Karol Adameczek
 set -e
 
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
