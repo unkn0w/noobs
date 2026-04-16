@@ -31,6 +31,7 @@ if [ -f "${CONFIG_FILE}" ]; then
     saved_port="${PORT:-}"
     saved_domain="${DOMAIN:-}"
     saved_version="${BASEROW_VERSION:-}"
+    saved_image_ref="${BASEROW_IMAGE_REF:-}"
 fi
 
 # alternatywny numer portu
@@ -42,8 +43,8 @@ elif [ -n "${saved_port}" ]; then
     echo -e " ${GREEN}> Używam portu z pliku konfiguracyjnego: ${portNR}${NORMAL}"
 else
     portNR=$(hostname -f | grep -Eo '[0-9]+')
-    portNR=$((20000 + portNR))
-    echo -e " ${GREEN}> Używam domyślnego portu: ${portNR}${NORMAL}"
+    portNR=$((30000 + portNR))
+    echo -e " ${GREEN}> Używam domyślnego portu Mikrusa dla usług: ${portNR}${NORMAL}"
 fi
 
 # mamy dockera?
@@ -72,21 +73,26 @@ echo -e " ${GREEN}> Ustalam wersję Baserow${NORMAL}"
 docker pull baserow/baserow:latest
 
 baserowVersion=$(docker image inspect baserow/baserow:latest --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null)
+baserowImageRef=$(docker image inspect baserow/baserow:latest --format '{{ index .RepoDigests 0 }}' 2>/dev/null)
 
 if [ -z "${baserowVersion}" ] || [ "${baserowVersion}" = "<no value>" ]; then
-    if [ -n "${saved_version}" ]; then
-        baserowVersion="${saved_version}"
-        echo -e " ${YELLOW}> Nie udało się odczytać wersji latest - używam zapisanej wersji: ${baserowVersion}${NORMAL}"
+    if [ -n "${baserowImageRef}" ] && [ "${baserowImageRef}" != "<no value>" ]; then
+        baserowVersion="latest"
+        echo -e " ${YELLOW}> Obraz nie podaje wersji semantycznej - przypinam instalację po digest${NORMAL}"
+    elif [ -n "${saved_image_ref}" ]; then
+        baserowImageRef="${saved_image_ref}"
+        baserowVersion="${saved_version:-latest}"
+        echo -e " ${YELLOW}> Nie udało się odczytać danych latest - używam zapisanej referencji obrazu${NORMAL}"
     else
-        echo -e " ${RED}> Nie udało się ustalić konkretnej wersji obrazu Baserow${NORMAL}"
+        echo -e " ${RED}> Nie udało się ustalić referencji obrazu Baserow${NORMAL}"
         exit 2
     fi
 else
     echo -e " ${GREEN}> Aktualna wersja latest to: ${baserowVersion}${NORMAL}"
 fi
 
-if [ "${baserowVersion}" != "latest" ]; then
-    docker pull "baserow/baserow:${baserowVersion}"
+if [ -z "${baserowImageRef}" ] || [ "${baserowImageRef}" = "<no value>" ]; then
+    baserowImageRef="baserow/baserow:${baserowVersion}"
 fi
 
 # wsparcie dla alternatywnej domeny
@@ -107,6 +113,7 @@ cat > "${CONFIG_FILE}" << EOF
 PORT=${portNR}
 DOMAIN=${domain}
 BASEROW_VERSION=${baserowVersion}
+BASEROW_IMAGE_REF=${baserowImageRef}
 EOF
 
 echo -e " ${GREEN}> Uruchamiam kontener...${NORMAL}"
@@ -123,7 +130,7 @@ docker run -itd \
   -v ${DATA_DIR}:/baserow/data \
   --restart unless-stopped \
   -e BASEROW_PUBLIC_URL=https://${domain} \
-  baserow/baserow:${baserowVersion}
+  ${baserowImageRef}
 
 echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
 
