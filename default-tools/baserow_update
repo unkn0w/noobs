@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [ ! -d /root/.baserow ]; then
+    echo "Baserow nie jest zainstalowany. Użyj najpierw baserow_install."
+    exit 1
+fi
+
+echo "Tworzę backup przed aktualizacją..."
+/bin/baserow_backup RUN || exit 1
+
+echo "Pobieram najnowszy obraz i odtwarzam kontener..."
+baserow_install

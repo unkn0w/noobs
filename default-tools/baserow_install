@@ -160,5 +160,10 @@ while true; do
   cnt=$((cnt - 1))
 done
 
+# aktywujemy backup dla usera
+/bin/baserow_backup
+
 echo -e "\n\n${GREEN}Twoja instancja Baserow jest pod adresem:${NORMAL}\n"
 echo -e "https://${domain}\n\n"
+
+echo -e "\n${NORMAL}Gdy będziesz chciał zaktualizować swoją instancję użyj ${YELLOW}baserow_update${NORMAL}\n\n"

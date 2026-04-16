@@ -1,0 +1,88 @@
+#!/bin/bash
+# Skrypt tworzy backup Baserow w środowisku Mikrusowym
+
+# ile ostatnich backupów trzymać?
+LASTBACKUPS=7
+
+# Kolory
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+NC='\033[0m'
+
+CONFIG_DIR="/root/.baserow"
+BACKUP_DIR="/backup/baserow"
+CRON_FILE="/etc/cron.d/baserow_backuper"
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_action() {
+    echo -e "${YELLOW}🔧 $1${NC}"
+}
+
+print_info() {
+    echo -e "$1"
+}
+
+if [ ! -d "${CONFIG_DIR}" ]; then
+    print_error "Nie widzę zainstalowanego Baserow → użyj: baserow_install"
+    exit 1
+fi
+
+if [ ! -d "${BACKUP_DIR}" ]; then
+    print_action "Tworzę katalog ${BACKUP_DIR}/"
+    mkdir -p "${BACKUP_DIR}"
+fi
+
+if [ "$1" != "RUN" ]; then
+    randomMinute=$((RANDOM % 60))
+    print_action "Konfiguruję automatyczny backup (godzina 4:${randomMinute})"
+    echo "${randomMinute} 4 * * * root /bin/baserow_backup RUN >/dev/null 2>&1" > "${CRON_FILE}"
+    print_success "Automatyczny skrypt backupu został aktywowany"
+    exit 0
+fi
+
+find "${BACKUP_DIR}/" -name "*.tar.gz" -type f -mtime +${LASTBACKUPS} -delete
+
+currentDate=$(date +%Y%m%d)
+archivePath="${BACKUP_DIR}/${currentDate}_baserow.tar.gz"
+wasRunning=0
+
+print_info "Rozpoczynam backup Baserow..."
+print_info "Data backupu: ${currentDate}"
+
+if docker ps --format '{{.Names}}' | grep -q '^baserow$'; then
+    wasRunning=1
+    print_action "Zatrzymuję kontener baserow na czas backupu"
+    docker stop baserow >/dev/null
+fi
+
+print_action "Tworzę archiwum ${archivePath}"
+if tar -czf "${archivePath}" -C /root .baserow; then
+    print_success "Backup Baserow został utworzony: ${archivePath}"
+else
+    print_error "Nie udało się utworzyć backupu Baserow"
+    if [ "${wasRunning}" -eq 1 ]; then
+        print_action "Przywracam działanie kontenera baserow po błędzie backupu"
+        docker start baserow >/dev/null
+    fi
+    exit 1
+fi
+
+if [ "${wasRunning}" -eq 1 ]; then
+    print_action "Uruchamiam ponownie kontener baserow"
+    docker start baserow >/dev/null
+fi
+
+if [ -f "${archivePath}" ]; then
+    file_size=$(stat -c %s "${archivePath}")
+    print_info "Rozmiar pliku backup: $(numfmt --to=iec ${file_size})"
+fi
+
+print_success "Backup Baserow zakończony pomyślnie!"
