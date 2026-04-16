@@ -137,7 +137,9 @@ echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
 cnt=120
 
 while true; do
-  if curl -fsS --max-time 5 "http://127.0.0.1:${portNR}" >/dev/null 2>&1; then
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:${portNR}" 2>/dev/null || true)
+
+  if [ -n "${http_code}" ] && [ "${http_code}" != "000" ]; then
     break
   fi
 
