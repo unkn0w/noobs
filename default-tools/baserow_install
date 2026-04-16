@@ -129,7 +129,7 @@ docker run -itd \
   -p ${portNR}:80 \
   -v ${DATA_DIR}:/baserow/data \
   --restart unless-stopped \
-  -e BASEROW_PUBLIC_URL=http://${domain} \
+  -e BASEROW_PUBLIC_URL=https://${domain} \
   ${baserowImageRef}
 
 echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
@@ -161,4 +161,4 @@ while true; do
 done
 
 echo -e "\n\n${GREEN}Twoja instancja Baserow jest pod adresem:${NORMAL}\n"
-echo -e "http://${domain}\n\n"
+echo -e "https://${domain}\n\n"
