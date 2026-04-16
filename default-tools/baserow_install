@@ -1,0 +1,160 @@
+#!/bin/bash
+#
+# Skrypt instalujący aplikację Baserow
+# Dostosowany do użycia w środowisku Mikrusa - https://mikr.us
+#
+
+MINIMALRAM=2000
+
+# kolorki
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NORMAL='\033[0m'
+
+availableMemory=$(free -m | awk '/^Mem:/ {print $2}')
+
+if [ "${availableMemory}" -gt "${MINIMALRAM}" ]; then
+    echo -e "${GREEN}System ma ponad ${MINIMALRAM}MB pamięci RAM${NORMAL}"
+else
+    echo -e "${RED}System ma mniej niż ${MINIMALRAM}MB pamięci RAM - to nie zadziała...${NORMAL}"
+    exit 2
+fi
+
+# wczytanie konfiguracji z pliku (jeśli istnieje)
+CONFIG_DIR="/root/.baserow"
+DATA_DIR="${CONFIG_DIR}/data"
+CONFIG_FILE="${CONFIG_DIR}/mikrus.cfg"
+if [ -f "${CONFIG_FILE}" ]; then
+    echo -e " ${GREEN}> Wczytuję konfigurację z pliku${NORMAL}"
+    source "${CONFIG_FILE}"
+    saved_port="${PORT:-}"
+    saved_domain="${DOMAIN:-}"
+    saved_version="${BASEROW_VERSION:-}"
+fi
+
+# alternatywny numer portu
+if [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+    portNR=$1
+    echo -e " ${GREEN}> Używam podanego portu: ${portNR}${NORMAL}"
+elif [ -n "${saved_port}" ]; then
+    portNR="${saved_port}"
+    echo -e " ${GREEN}> Używam portu z pliku konfiguracyjnego: ${portNR}${NORMAL}"
+else
+    portNR=$(hostname -f | grep -Eo '[0-9]+')
+    portNR=$((20000 + portNR))
+    echo -e " ${GREEN}> Używam domyślnego portu: ${portNR}${NORMAL}"
+fi
+
+# mamy dockera?
+if command -v docker &> /dev/null; then
+    echo -e " ${GREEN}> Docker jest zainstalowany${NORMAL}"
+else
+    echo -e " ${YELLOW}> Instaluję Dockera${NORMAL}"
+    curl -fsSL https://get.docker.com | sh -
+fi
+
+if [ ! -d "${CONFIG_DIR}" ]; then
+    echo -e " ${YELLOW}> Tworzę katalog domowy dla Baserow${NORMAL}"
+    mkdir -p "${CONFIG_DIR}"
+else
+    echo -e " ${GREEN}> Katalog domowy już istnieje - użyję go${NORMAL}"
+fi
+
+if [ ! -d "${DATA_DIR}" ]; then
+    echo -e " ${YELLOW}> Tworzę katalog na dane Baserow${NORMAL}"
+    mkdir -p "${DATA_DIR}"
+else
+    echo -e " ${GREEN}> Katalog na dane już istnieje - użyję go${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Ustalam wersję Baserow${NORMAL}"
+docker pull baserow/baserow:latest
+
+baserowVersion=$(docker image inspect baserow/baserow:latest --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null)
+
+if [ -z "${baserowVersion}" ] || [ "${baserowVersion}" = "<no value>" ]; then
+    if [ -n "${saved_version}" ]; then
+        baserowVersion="${saved_version}"
+        echo -e " ${YELLOW}> Nie udało się odczytać wersji latest - używam zapisanej wersji: ${baserowVersion}${NORMAL}"
+    else
+        echo -e " ${RED}> Nie udało się ustalić konkretnej wersji obrazu Baserow${NORMAL}"
+        exit 2
+    fi
+else
+    echo -e " ${GREEN}> Aktualna wersja latest to: ${baserowVersion}${NORMAL}"
+fi
+
+if [ "${baserowVersion}" != "latest" ]; then
+    docker pull "baserow/baserow:${baserowVersion}"
+fi
+
+# wsparcie dla alternatywnej domeny
+if [ -n "$2" ] && [[ "$2" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    domain="$2"
+    echo -e " ${GREEN}> Używam podanej domeny: ${domain}${NORMAL}"
+elif [ -n "${saved_domain}" ] && [ -z "${1:-}" ] && [ -z "${2:-}" ]; then
+    domain="${saved_domain}"
+    echo -e " ${GREEN}> Używam domeny z pliku konfiguracyjnego: ${domain}${NORMAL}"
+else
+    eval "$(curl -s -k -6 https://info.mikr.us)"
+    domain="${info_imie_id}-${portNR}.wykr.es"
+    echo -e " ${GREEN}> Używam domyślnej domeny: ${domain}${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Zapisuję konfigurację do pliku${NORMAL}"
+cat > "${CONFIG_FILE}" << EOF
+PORT=${portNR}
+DOMAIN=${domain}
+BASEROW_VERSION=${baserowVersion}
+EOF
+
+echo -e " ${GREEN}> Uruchamiam kontener...${NORMAL}"
+
+# porządki
+docker rm -f baserow >/dev/null 2>&1
+
+docker run -itd \
+  --memory=$((availableMemory - 100))m \
+  --memory-swap=$((availableMemory - 100))m \
+  --memory-swappiness=0 \
+  --name baserow \
+  -p ${portNR}:80 \
+  -v ${DATA_DIR}:/baserow/data \
+  --restart unless-stopped \
+  -e BASEROW_PUBLIC_URL=https://${domain} \
+  baserow/baserow:${baserowVersion}
+
+echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
+
+cnt=36
+
+while true; do
+  log_ready=0
+  http_ready=0
+
+  if docker logs baserow 2>&1 | grep -q "Baserow is now available at"; then
+    log_ready=1
+  fi
+
+  if curl -fsS --max-time 5 "http://127.0.0.1:${portNR}" >/dev/null 2>&1; then
+    http_ready=1
+  fi
+
+  if [ "${log_ready}" -eq 1 ] && [ "${http_ready}" -eq 1 ]; then
+    break
+  fi
+
+  if [ ${cnt} -eq 0 ]; then
+    echo -e "${RED}Coś nie działa :(${NORMAL}"
+    echo -e "${YELLOW}Sprawdź logi poleceniem: docker logs baserow${NORMAL}"
+    exit 2
+  fi
+
+  echo -n "."
+  sleep 5
+  cnt=$((cnt - 1))
+done
+
+echo -e "\n\n${GREEN}Twoja instancja Baserow jest pod adresem:${NORMAL}\n"
+echo -e "https://${domain}\n\n"
