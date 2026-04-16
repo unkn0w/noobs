@@ -129,27 +129,22 @@ docker run -itd \
   -p ${portNR}:80 \
   -v ${DATA_DIR}:/baserow/data \
   --restart unless-stopped \
-  -e BASEROW_PUBLIC_URL=https://${domain} \
+  -e BASEROW_PUBLIC_URL=http://${domain} \
   ${baserowImageRef}
 
 echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
 
-cnt=36
+cnt=120
 
 while true; do
-  log_ready=0
-  http_ready=0
-
-  if docker logs baserow 2>&1 | grep -q "Baserow is now available at"; then
-    log_ready=1
-  fi
-
   if curl -fsS --max-time 5 "http://127.0.0.1:${portNR}" >/dev/null 2>&1; then
-    http_ready=1
+    break
   fi
 
-  if [ "${log_ready}" -eq 1 ] && [ "${http_ready}" -eq 1 ]; then
-    break
+  if ! docker ps --format '{{.Names}}' | grep -q '^baserow$'; then
+    echo -e "${RED}Kontener baserow zakończył pracę podczas startu${NORMAL}"
+    echo -e "${YELLOW}Sprawdź logi poleceniem: docker logs baserow${NORMAL}"
+    exit 2
   fi
 
   if [ ${cnt} -eq 0 ]; then
@@ -164,4 +159,4 @@ while true; do
 done
 
 echo -e "\n\n${GREEN}Twoja instancja Baserow jest pod adresem:${NORMAL}\n"
-echo -e "https://${domain}\n\n"
+echo -e "http://${domain}\n\n"
