@@ -3,10 +3,6 @@
 # official docs https://go.dev/doc/install
 # Author: Cloudziu
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 set -e
 
 # Check version at: https://go.dev/dl/
@@ -17,7 +13,10 @@ GO_INSTALL_PATH="/usr/local"
 GO_URL="https://go.dev/dl/$GO_VERSION.linux-amd64.tar.gz"
 
 # Check for sudo priviliges
-require_root
+if [[ $EUID -ne 0 ]]; then
+   echo -e "Skrypt powinien zostac uruchomiony z uprawnieniami sudo lub jako uzytkownik root. \033[1;31msudo ./chce_go.sh\033[0m"
+   exit 1
+fi
 
 # Remove older version of Go if exist
 if [ -d "/usr/local/go" ]; then

@@ -1,12 +1,8 @@
 #!/bin/bash
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 if [ -f "/etc/pam.d/sshd" ]; then
     if grep -Fq "pam_google_authenticator.so" "/etc/pam.d/sshd"; then
-        msg_error "2FA prawdopodobnie jest już skonfigurowane na twoim systemie."
+        echo -e "\033[0;31m2FA prawdopodobnie jest już skonfigurowane na twoim systemie."
         echo -e "\033[0;33mZweryfikuj zawartość pliku \033[0m\033[7m/etc/pam.d/sshd\033[0;33m i spróbuj ponownie.\033[0m"
         exit 1
     fi
@@ -19,20 +15,20 @@ echo -e "\033[0;32mDodaj danego użytkownika do grupy \033[0m\033[7mwithout-otp\
 
 read -n1 -s -r -p $'\033[0;33mNaciśnij enter, aby kontynuować...\033[0m\n' key
 if [ "$key" != "" ]; then
-    msg_error "Wykryto inny przycisk, anulowanie aktywowania usługi 2FA..."
+    echo -e "\033[0;31mWykryto inny przycisk, anulowanie aktywowania usługi 2FA...\033[0m"
     exit 1
 fi
 
-pkg_update
-pkg_install libpam-google-authenticator
+apt update
+apt install -y libpam-google-authenticator
 google-authenticator
 if [ $? != 0 ]; then
-    msg_error "Konfiguracja 2FA nie zwróciła prawidłowego kodu zakończenia, anulowanie aktywowania usługi 2FA..."
+    echo -e "\033[0;31mKonfiguracja 2FA nie zwróciła prawidłowego kodu zakończenia, anulowanie aktywowania usługi 2FA...\033[0m"
     exit 1
 fi
 
 if [ ! -f "$HOME/.google_authenticator" ]; then
-    msg_error "Nie znaleziono pliku konfiguracyjnego 2FA w katalogu domowym. Spróbuj ponownie uruchomić skrypt."
+    echo -e "\033[0;31mNie znaleziono pliku konfiguracyjnego 2FA w katalogu domowym. Spróbuj ponownie uruchomić skrypt.\033[0m"
     exit 1
 fi
 
@@ -42,6 +38,6 @@ echo "auth required pam_google_authenticator.so" >>/etc/pam.d/sshd
 
 grep -Fq "UsePAM" /etc/ssh/sshd_config && sed -i 's/UsePAM no/UsePAM yes/' /etc/ssh/sshd_config || echo "UsePAM yes" >> /etc/ssh/sshd_config
 grep -Fq "ChallengeResponseAuthentication" /etc/ssh/sshd_config && sed -i 's/\(ChallengeResponseAuthentication\) no/\1 yes/g' /etc/ssh/sshd_config || echo "ChallengeResponseAuthentication yes" >> /etc/ssh/sshd_config
-service_restart sshd.service
+systemctl restart sshd.service
 
-msg_ok "Gotowe!"
+echo -e "\033[0;32mGotowe!\033[0m"

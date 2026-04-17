@@ -5,9 +5,6 @@
 #
 # Autor: Pawel 'Pawilonek' Kaminski
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
 # Funkcja wyswietla podany tekst i prosi uzytkownika o podanie wartosci
 _ask_input() {
@@ -40,7 +37,12 @@ _service_exists() {
 
 
 # Spawdzanie czy uzytkownik jest administratorem
-require_root
+if [ "$(id -u)" != "0" ]; then
+  echo -e "[\e[31m ERR \e[39m] Musisz uruchomić ten skrypt jako root:"
+  echo "  sudo $0"
+
+  exit 1
+fi
 
 
 
@@ -48,14 +50,14 @@ require_root
 # Instalowanie zaleznosci
 #
 
-msg_info "Instalowanie HAProxy"
+echo -e "[\e[34m i \e[39m] Instalowanie HAProxy"
 # Spawdzanie czy HAProxy jest juz zainstalowane
 if _service_exists haproxy; then
-    msg_ok "Jest już zainstalowane"
+    echo -e "[\e[32m OK \e[39m] Jest już zainstalowane"
 else
-    pkg_update
-    pkg_install haproxy
-    msg_ok "zainstalowane"
+    apt update
+    apt install -y haproxy
+    echo -e "[\e[32m OK \e[39m] zainstalowane"
 fi
 
 
@@ -64,10 +66,10 @@ fi
 # Sprawdzanie obecnej konfiguracji
 #
 
-haproxy -c -V -f /etc/haproxy/haproxy.cfg
+haproxy -c -V -f /etc/haproxy/haproxy.cfg 
 if [ $? -ne 0 ]; then
-  msg_error "Twoja obecna konfiguracja serwera HAProxy jest niepoprawna"
-  msg_error "Sprawdź plik /etc/haproxy/haproxy.cfg"
+  echo -e "[\e[31m ERR \e[39m] Twoja obecna konfiguracja serwera HAProxy jest niepoprawna"
+  echo -e "[\e[31m ERR \e[39m] Sprawdź plik /etc/haproxy/haproxy.cfg"
 
   exit 1
 fi
@@ -78,10 +80,10 @@ fi
 # Zbieranie danych od uzytkownika
 #
 
-msg_info "Dodawanie nowej konfiguracji"
+echo -e "[\e[34m i \e[39m] Dodawanie nowej konfiguracji"
 
-# Generowanie losowej nazwy (kryptograficznie bezpieczne)
-randomName=$(generate_random_string 5)
+# Generowanie losowej nazwy
+randomName=$(echo $RANDOM | md5sum | head -c 5)
 
 _ask_input "Nazwa serwisu" "$randomName"
 name=$result
@@ -111,7 +113,7 @@ done
 
 # Spawdzanie czy zostal podany przynajmniej jeden serwer
 if [ ${#servers[@]} -eq 0 ]; then
-  msg_error "Musisz podać przynajmniej jeden serwer"
+  echo -e "[\e[31m ERR \e[39m] Musisz podać przynajmniej jeden serwer"
 
   exit 1
 fi
@@ -149,7 +151,7 @@ for address in "${servers[@]}"
 do
   config="${config}
         server             srv${i} ${address} check"
-
+  
   ((i=i+1))
 done
 
@@ -162,7 +164,7 @@ haproxy -c -V -f ${tmpConfig}
 configReturn=$?
 rm ${tmpConfig}
 if [ $configReturn -ne 0 ]; then
-  msg_error "Niestety podana konfiguracja jest niepoprawna"
+  echo -e "[\e[31m ERR \e[39m] Niestety podana konfiguracja jest niepoprawna"
 
   exit 1
 fi
@@ -170,11 +172,12 @@ fi
 
 # Dodanie nowego wpisu do konfiguracji
 echo "$config" >> /etc/haproxy/haproxy.cfg
-msg_ok "Twoja konfiguracja została zapisana w: /etc/haproxy/haproxy.cfg"
+echo -e "[\e[32m OK \e[39m] Twoja konfiguracja została zapisana w: /etc/haproxy/haproxy.cfg"
 
 # Restart servera HAProxy
-msg_info "Restart serwera"
-service_restart haproxy
+echo -e "[\e[34m i \e[39m] Restart serwera"
+systemctl restart haproxy
 
 
-msg_ok "Gotowe!"
+echo -e "[\e[32m OK \e[39m] Gotowe!"
+

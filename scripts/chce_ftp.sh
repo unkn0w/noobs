@@ -2,13 +2,9 @@
 # FTP installation script
 # Authors: Mariusz 'maniek205' Kowalski
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 err() {
-    msg_error "$1"
-    exit 1
+    echo -e "\e[0;31m[!] \e[1;31m$1\e[0;0m";
+    exit 1;
 }
 
 [ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
@@ -27,16 +23,16 @@ elif sudo lsof -i:"${listen_port}" | grep -q PID ; then
 fi
 echo "Using port: $listen_port"
 
-pkg_update
-pkg_install vsftpd
+sudo apt update
+sudo apt install -y vsftpd
 sudo sed -i 's/#write_enable=YES/write_enable=YES/g' /etc/vsftpd.conf
 
 echo "
 listen_port=${listen_port}
 " >> /etc/vsftpd.conf
 
-service_enable vsftpd
-service_restart vsftpd
+sudo systemctl enable vsftpd
+sudo systemctl restart vsftpd
 
 echo "FTP server has been installed. Use your credentials to log in.
 Server IP: srvX.mikr.us (change X to your server number)

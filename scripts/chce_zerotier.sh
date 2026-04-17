@@ -2,12 +2,17 @@
 # Skrypt instaluje i laczy sie z sieca ZeroTier
 # Autor: Maciej Loper @2021-10
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 SLEEP=5
 TIMEOUT=60
+
+status() {
+    echo -e "\e[0;32m[x] \e[1;32m$1\e[0;0m"
+}
+
+err() {
+    echo -e "\e[0;31m[!] \e[1;31m$1\e[0;0m";
+    exit 1;
+}
 
 usage (){
     echo "Uzycie: $0 <network_id>";
@@ -18,26 +23,26 @@ usage (){
 # start -----------------------------
 [ "$#" -lt 1 ] && usage
 
-[ "$EUID" -eq 0 ] && { msg_error "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; exit 1; }
-sudo --validate || { msg_error "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; exit 1; }
+[ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
+sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
 
 net="$1"
 
-msg_info "pobranie i instalacja z oficjalnego skryptu"
+status "pobranie i instalacja z oficjalnego skryptu"
 dpkg --status zerotier-one &>/dev/null || {
     curl -s https://install.zerotier.com | sudo bash
 }
 
-msg_info "uruchomienie (+ dodanie do boot'a)"
+status "uruchomienie (+ dodanie do boot'a)"
 sudo systemctl enable --now zerotier-one.service &>/dev/null
 
-msg_info "dolaczanie do sieci $net"
+status "dolaczanie do sieci $net"
 sudo zerotier-cli join "$net"
 
 id="$(sudo zerotier-cli info | cut -d" " -f3)"
-msg_info "twoj ID w sieci to: $id"
+status "twoj ID w sieci to: $id"
 
-msg_info "oczekiwanie na polaczenie..."
+status "oczekiwanie na polaczenie..."
 
 counter=0
 while true; do
@@ -46,8 +51,8 @@ while true; do
     [ -n "$found" ] && break
     sleep $SLEEP
     counter=$((counter+1))
-    [ "$counter" -ge $TIMEOUT ] && { echo; msg_error "brak polaczenia"; exit 5; }
+    [ "$counter" -ge $TIMEOUT ] && { echo; err "brak polaczenia"; exit 5; }
 done
 
 echo
-msg_ok "Twoj IP w sieci ZeroTier to: $found"
+status "Twoj IP w sieci ZeroTier to: $found"

@@ -1,10 +1,5 @@
 #!/bin/bash
 #Script created by Andrzej "Ferex" Szczepaniak
-
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 check_number='^[0-9]+$'
 if [ -z "$1" ]; then
     echo "Poprawna składnia: ./chce_perconamysql_binary.sh użytkownik_mysql port"

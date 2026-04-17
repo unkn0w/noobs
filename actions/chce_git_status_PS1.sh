@@ -1,12 +1,8 @@
 #!/bin/bash
 # Dodanie do aktualnego $PS1 statusu repozytorium gita bieżącego katalogu
-# Autorzy: Tomasz Wiśniewski, krystofair @ 2025-09-22
+# Autor: Tomasz Wiśniewski, krystofair @ 2025-09-22
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
-msg_info "Jeśli twoja wybrana powłoka nie zadziała, to spróbuj zainstalować do 'bash'."
+echo "Jeśli twoja wybrana powłoka nie zadziała, to spróbuj zainstalować do 'bash'."
 sleep 1
 
 if ! shopt -oq posix; then
@@ -154,14 +150,14 @@ if [[ ! $? -eq 0 ]]; then echo $ch_shell; exit -1; fi
 
 installation_type=$(choose_installation_place)
 install_path=$(get_install_path_for_specific_shell $ch_shell $installation_type)
-if [[ ! $? -eq 0 ]]; then msg_error "Coś poszło nie tak."; exit -1; fi
+if [[ ! $? -eq 0 ]]; then echo "Coś poszło nie tak."; exit -1; fi
 
 
 if [[ ! -e $GIT_PROMPT_FILE ]]
 then
     # https://anotheruiguy.gitbooks.io/gitforeveryone/content/auto/README.html
     GIT_PROMPT_FILE_URL="https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh"
-    msg_info "Pobieram plik $GIT_PROMPT_FILE_URL"
+    echo "Pobieram plik $GIT_PROMPT_FILE_URL"
     curl -o $GIT_PROMPT_FILE "$GIT_PROMPT_FILE_URL"
 fi
 
@@ -178,75 +174,19 @@ fi
 # W tym miejscu nie ma sprawdzenia czy plik już istnieje,
 # ze względu na to, że jeżeli użytkownik namiesza w oryginalnym pliku,
 # to uruchomienie skryptu po raz drugi naprawi mu ten plik.
-msg_info "Instaluję plik $FILENAME w katalogu $(dirname $install_path)"
+echo "Instaluję plik $FILENAME w katalogu $(dirname $install_path)"
 install -m 0644 $GIT_PROMPT_FILE $(dirname $install_path)/$FILENAME
 
 if test -e $install_path && test -n "$(cat $install_path | grep __git_ps1)"
 then
-  msg_info "Masz to już zainstalowane."
+  echo "Masz to już zainstalowane dla takich wyborów."
   unset ch_shell
   unset installation_type
   unset install_path
-  exit -1
+  exit 0
 fi
 
-# Wykorzystuje "features" z globalnego kontekstu
-choose_ps1_format() {
-  echo "Możliwe formaty, \\e... to escape dla oznaczenia koloru" 1>&2
-  FORMATS=$'
-1.(<GIT-STATUS>)[<USER>@<HOST>] <PWD><ONL>$
-2.(<GIT-STATUS>) [<USER>@<HOST>] <PWD><ONL>$
-3.<USER>@<HOST> <PWD> (<GIT-STATUS>)<ONL>$
-4.<USER>@<HOST> \\e[33m<PWD>\\e[00m (<GIT-STATUS>)<ONL>$
-5.<USER>@<HOST> \\e[33m<PWD>\\e[00m <GIT-STATUS><ONL>$
-6.<USER>@<HOST> \\e[33m<PWD>\\e[00m <GIT-STATUS><ONL><DATE>$
-'
-  echo "$FORMATS" 1>&2
-  read -p "Wybierz format: " format_nr
-  case $format_nr in
-    1|2|3|4|5|6) : ;;
-    *) echo "Niepoprawny wybor." 1>&2; return -1 ;;
-  esac
-  format=$(echo "$FORMATS" | grep -F $format_nr.)
-  format=${format##??}
-  read -p "Czy chcesz mieć znak zachęty w nowej linii? Y/n: " r
-  ONL=${r:-y}; unset r
-  if test "$ONL" = y;
-  then format=${format/"<ONL>"/\\n};
-  else format=${format/"<ONL>"/}
-  fi
-
-  unset FORMATS
-  unset ONL
-  unset DOT
-
-  #### BUILD PS1 FROM FORMAT ####
-  format=${format/"<USER>"/\\u}
-  format=${format/"<HOST>"/\\h}
-  format=${format/"<PWD>"/\\w}
-  format=${format/"<GIT-STATUS>"/'$(__git_ps1 %s)'}
-  if test $format_nr -eq '6'
-  then
-    format=${format/"<DATE>"/'$(date +[%H:%M])'}
-  fi
-
-  echo $format
-  unset format
-
-  return 0
-}
-
-if test $ch_shell = bash || test $ch_shell = csh
-then
-  new_ps1=$(choose_ps1_format)
-  if [[ ! $? -eq 0 ]]; then
-    msg_error "Wybrano zły format, nie robię nic, kończę."
-    msg_info "Uruchom mnie ponownie."
-    exit 0
-  fi
-fi
-
-msg_info "Dodaję nowe instrukcje do pliku $install_path"
+echo "Dodaję nowe instrukcje do pliku $install_path"
 echo "# === Dodane przez skrypt 'chce_git_status_PS1.sh'. ===" >> $install_path
 echo "$features" >> $install_path
 echo 'if [[ -z $(declare -F | grep __git_ps1) ]]; then' >> $install_path
@@ -254,8 +194,7 @@ echo "source $(dirname $install_path)/$FILENAME" >> $install_path
 echo 'fi' >> $install_path
 case $ch_shell in
   bash|csh)
-    echo $"export PS1='$new_ps1 '" >> $install_path
-    # echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n$ \'' >> $install_path
+    echo $'export PS1=\'$(__git_ps1 \(%s%s\))[\u@\h \w]\n\$ \'' >> $install_path
   ;;
   zsh)
     echo $'setopt PROMPT_SUBST; PS1=\'[%n@%m %c$(__git_ps1 \" (%s)\")]\$ \'' >> $install_path
@@ -274,3 +213,4 @@ unset FILENAME
 rm -f $GIT_PROMPT_FILE
 
 exit 0
+

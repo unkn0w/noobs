@@ -7,11 +7,6 @@
 #   --port PORT_NUMBER (to configure connection for non mikr.us host)
 #   --host HOSTNAME (to configure connection for non mikr.us host)
 #   username@test.com (without param in front)
-
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 # some bash magic: https://brianchildress.co/named-parameters-in-bash/
 while [ $# -gt 0 ]; do
     if [[ $1 == *"--"* ]]; then
@@ -27,12 +22,12 @@ while [ $# -gt 0 ]; do
 done
 
 if [[ -n "$mikrus" && -n "$possible_ssh_param" ]]; then
-    msg_error "--mikrus and ssh-like argument ($possible_ssh_param) were given in the same time!"
+    echo "ERROR: --mikrus and ssh-like argument ($possible_ssh_param) were given in the same time!"
     exit 1
 fi
 
 if [[ -n "$host" && -n "$possible_ssh_param" ]]; then
-    msg_error "--host and ssh-like argument ($possible_ssh_param) were given in the same time!"
+    echo "ERROR: --host and ssh-like argument ($possible_ssh_param) were given in the same time!"
     exit 2
 fi
 
@@ -41,13 +36,13 @@ user="${user:-root}"
 
 if [ -n "$mikrus" ]; then
     if ! [[ "$mikrus" =~ ^[a-z]+[0-9]+$ ]]; then
-        msg_error "--mikrus parameter is not valid!"
+        echo "ERROR: --mikrus parameter is not valid!"
         exit 3
     fi
 
     number_part=$(echo "$mikrus" | grep -o '[0-9]\+')
     if [ -z "$number_part" ]; then
-        msg_error "Could not extract number from mikrus name!"
+        echo "ERROR: Could not extract number from mikrus name!"
         exit 4
     fi
 
@@ -61,7 +56,7 @@ if [ -n "$possible_ssh_param" ]; then
 fi
 
 if [ -z "$host" ]; then
-    msg_error "Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com)."
+    echo "ERROR: Host was not recognized by any known method (--mikrus or --host or by specifying user@host.com)."
     echo ""
     echo "Usage: you can pass following arguments:"
     echo "  --mikrus MIKRUS_NAME (i.e. 'X123')"
@@ -72,11 +67,11 @@ if [ -z "$host" ]; then
     exit 5
 fi
 
-msg_info "Following params will be used to generate ssh config: user:'$user', host:'$host', port:'$port'"
+echo "Following params will be used to generate ssh config: user:'$user', host:'$host', port:'$port'"
 read -n 1 -s  -p "Press enter (or space) to continue or any other key to cancel." decision
 echo ""
 if [ -n "$decision" ]; then
-    msg_info "No further changes."
+    echo "No further changes."
     exit 0
 fi
 
@@ -99,12 +94,12 @@ if ! grep -q "$header" ~/.ssh/config ; then
     echo "  Port $port" >> ~/.ssh/config
     echo "  IdentityFile $ssh_key_file" >> ~/.ssh/config
 else
-    msg_error "'$header' already defined in ~/.ssh/config!"
+    echo "ERROR: '$header' already defined in ~/.ssh/config!"
     exit 6
 fi
 
 ssh-copy-id -i "$ssh_key_file" $header
 
 echo ""
-msg_ok "ssh was properly configured!"
-msg_info "Remember, that you can use tab to use autofill to type connection string faster - type few first chars of Host (i.e. 'ssh ${header:0:8}', or even less), then press tab."
+echo "ssh was properly configured!"
+echo "Remember, that you can use tab to use autofill to type connection string faster - type few first chars of Host (i.e. 'ssh ${header:0:8}', or even less), then press tab."

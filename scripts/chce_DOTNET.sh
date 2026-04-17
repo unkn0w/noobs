@@ -3,10 +3,6 @@
 # https://docs.microsoft.com/pl-pl/dotnet/core/install/linux-ubuntu
 #
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 # określenie wersji systemu
 
 usage (){
@@ -19,12 +15,12 @@ usage (){
 
 dotnet_version="$1"
 
-pkg_install lsb-release
+apt-get install -y lsb-release
 
 OS_VERSION="$(lsb_release -sr)"
 
 # Zainstaluj klucze do podpisywania pakietów microsoft
-pkg_install gpg
+apt-get install -y gpg
 cd /tmp
 wget -O - https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o microsoft.asc.gpg
 mv microsoft.asc.gpg /etc/apt/trusted.gpg.d/
@@ -34,13 +30,13 @@ chown root:root /etc/apt/trusted.gpg.d/microsoft.asc.gpg
 chown root:root /etc/apt/sources.list.d/microsoft-prod.list
 
 # Aktualizacja apt
-pkg_update
+apt-get update
 
 # Instalacja dotnet-sdk
-pkg_install dotnet-sdk-"$dotnet_version"
+apt-get install -y dotnet-sdk-"$dotnet_version"
 
 # Instalacia środwiska uruchomieniowego platfromy ASP.NET Core
-pkg_install aspnetcore-runtime-"$dotnet_version"
+apt-get install -y aspnetcore-runtime-"$dotnet_version"
 
 # Lub alternatywa: ASP.NET zmiast ASP.NET Core
 # sudo apt-get install -y dotnet-runtime-"$dotnet_version"

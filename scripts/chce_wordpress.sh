@@ -1,77 +1,70 @@
 #!/bin/bash
 #
 # Author: Rafal Masiarek <rafal@masiarek.pl>
-# Refactored: noobs community (v2.0.0)
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+# Check if you are root
+[[ $EUID != 0 ]]  && { echo "Please run as root" ; exit; }
 
-# Sprawdz uprawnienia root
-require_root
-
-# Konfiguracja strefy czasowej
+# Configuring tzdata if not exist
 [[ ! -f /etc/localtime ]] && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
 
-# Sprawdz zaleznosc LAMP
-if [[ -f /opt/noobs/scripts/chce_LAMP.sh ]]; then
-    source /opt/noobs/scripts/chce_LAMP.sh
+if test -f /opt/noobs/scripts/chce_LAMP.sh; then
+    . /opt/noobs/scripts/chce_LAMP.sh
 else
-    die "Skrypt chce_LAMP.sh jest niezbedny do dzialania. Zainstaluj LAMP najpierw."
+    echo "Skrypt https://github.com/unkn0w/noobs/blob/main/scripts/chce_LAMP.sh jest niezbedny do dzialania"
+    exit 8
 fi
 
 # Instalacja wp-cli
-msg_info "Instalowanie WP-CLI..."
-download_file "https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar" "/usr/local/bin/wp"
-download_file "https://raw.githubusercontent.com/wp-cli/wp-cli/master/utils/wp-completion.bash" "/etc/bash_completion.d/wp-cli"
+wget -q -O /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+wget -q -O /etc/bash_completion.d/wp-cli  https://raw.githubusercontent.com/wp-cli/wp-cli/master/utils/wp-completion.bash
 chmod +x /usr/local/bin/wp
 chmod +x /etc/bash_completion.d/wp-cli
 
-# Przygotowanie katalogu WordPress
 wordpress_folder="/var/www/html/wp"
-mkdir -p "$wordpress_folder"
-chown www-data:www-data "$wordpress_folder"
-
-cd "$wordpress_folder" || die "Nie mozna przejsc do katalogu $wordpress_folder"
-
-# Sprawdz czy WordPress jest juz zainstalowany
-if /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
-    msg_warn "WordPress juz istnieje pod sciezka $wordpress_folder"
-    msg_info "Usun go lub zainstaluj recznie pod inna sciezka."
-    exit 9
+if mkdir -p "$wordpress_folder"; then
+    chown www-data:www-data "$wordpress_folder"
 fi
 
-# Tworzenie bazy danych dla WordPress
-msg_info "Tworzenie bazy danych dla WordPress..."
-DB_NAME="wp_$(generate_random_string 12)"
-mysql_create_db_user "$DB_NAME" "$DB_NAME"
-DB_PASS="$REPLY"
+cd "$wordpress_folder" || { echo "Directory cannot exist"; exit; }
+if ! /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
 
-# Instalacja WordPress z uzyciem wp-cli
-msg_info "Pobieranie WordPress..."
-WP_CLI_CACHE_DIR=/dev/null /usr/local/bin/wp \
-    core download \
-    --allow-root \
-    --locale=pl_PL
+    # Generyczna baza danych
+    # https://bash.0x1fff.com/polecenia_wbudowane/polecenie_readonly.html
+    readonly DB=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+    readonly DBPASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 
-msg_info "Konfigurowanie WordPress..."
-/usr/local/bin/wp \
-    config create \
-    --allow-root \
-    --dbname="$DB_NAME" \
-    --dbuser="$DB_NAME" \
-    --dbpass="$DB_PASS" \
-    --locale=pl_PL
+    readonly Q1="CREATE DATABASE IF NOT EXISTS wp_$DB;"
+    readonly Q2="GRANT ALL ON wp_$DB.* TO 'wp_$DB'@'localhost' IDENTIFIED BY '$DBPASS';"
+    readonly Q3="FLUSH PRIVILEGES;"
+    readonly SQL="$Q1$Q2$Q3"
 
-# Nadawanie uprawnien na pliki
-find . -exec chown www-data:www-data {} \;
+    mysql -uroot -e "$SQL"
 
-# Konfiguracja Apache
-msg_info "Konfigurowanie Apache..."
-sed -i "s#/var/www/html#$wordpress_folder#g" '/etc/apache2/sites-available/000-default.conf'
-apache2ctl -t && apache2ctl graceful
+    # Instalacja wordpressa z uzyciem wp-cli
+    # FIX: https://github.com/wp-cli/core-command/issues/30#issuecomment-323069641
+    WP_CLI_CACHE_DIR=/dev/null /usr/local/bin/wp \
+		core \
+		download \
+		--allow-root \
+		--locale=pl_PL
 
-msg_ok "WordPress zainstalowany pomyslnie!"
-msg_info "Baza danych: $DB_NAME"
-msg_info "Haslo bazy: $DB_PASS"
-msg_info "Sciezka: $wordpress_folder"
+    /usr/local/bin/wp \
+		config \
+		create \
+		--allow-root \
+		--dbname=wp_"$DB" \
+		--dbuser=wp_"$DB" \
+		--dbpass="$DBPASS" \
+		--locale=pl_PL
+
+    # nadawanie uprawnien na pliki
+    find . -exec chown www-data:www-data {} \;
+
+    # Zastapienie defaultowej sciezki documentroot w konfiguracji apache2 i pozniejszy restart
+    sed -i "s#/var/www/html#$wordpress_folder#g" '/etc/apache2/sites-available/000-default.conf'
+    apache2ctl -t && apache2ctl graceful
+else
+    echo -e "Istnieje juz wordpress pod sciezka $wordpress_folder automayczna instalacja nie jest możliwa.\nJesli to nieuzywany wordpress usun go i ponow skrypt albo zainstaluj wordpressa recznie pod inna sciezka.";
+    exit 9
+fi

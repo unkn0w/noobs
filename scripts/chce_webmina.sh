@@ -3,21 +3,17 @@
 # Author: Marcin 'y0rune' Wozniak
 #
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 # Check if you are root
-require_root
+[[ $EUID != 0 ]]  && { echo "Please run as root" ; exit; }
 
 # Configuring tzdata if not exist
 [[ ! -f /etc/localtime ]] && ln -fs /usr/share/zoneinfo/Europe/Warsaw /etc/localtime
 
 # Install all missing dependencies
-pkg_update
-pkg_install curl wget perl libnet-ssleay-perl openssl libauthen-pam-perl \
+apt-get update
+apt-get install curl wget perl libnet-ssleay-perl openssl libauthen-pam-perl \
 	libpam-runtime libio-pty-perl apt-show-versions python unzip \
-	shared-mime-info
+	shared-mime-info -y
 
 # Values
 webadmin_tmp="/tmp/webadmin.deb"
@@ -34,8 +30,8 @@ port_number=$(echo -e "30$(hostname | grep -Eo '[0-9]{3}')")
 sed -i "s|port=10000|port=$port_number|" /etc/webmin/miniserv.conf
 sed -i "s|listen=10000|listen=$port_number|" /etc/webmin/miniserv.conf
 
-# Restart uslugi
-service_restart webmin
+# Restart
+/etc/init.d/webmin restart
 
 # Remove tmp file
 rm "$webadmin_tmp"

@@ -3,19 +3,18 @@
 # Autor: Mikołaj Kamiński (mikolaj-kaminski.com)
 # Tutorial: https://www.digitalocean.com/community/tutorials/how-to-install-tinc-and-set-up-a-basic-vpn-on-ubuntu-18-04
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
-require_root
+if [[ $EUID -ne 0 ]]; then
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_tinc.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
+   exit 1
+fi
 
 server_name=server_01
 network_name=netname
 node_ip=10.0.0.1/32
 subnet=10.0.0.0/24
 
-pkg_update
-pkg_install tinc
+apt update
+apt install tinc --yes
 
 mkdir -p /etc/tinc/$network_name/hosts
 
@@ -48,4 +47,4 @@ chmod 755 /etc/tinc/$network_name/tinc-*
 
 ufw allow 655
 
-service_enable tinc@$network_name
+systemctl enable tinc@$network_name

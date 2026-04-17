@@ -4,30 +4,22 @@
 # Author: Sebastian Matuszczyk
 #
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-# Sprawdzenie uprawnien
-require_root
+# Add the HashiCorp GPG key
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 
-# Instalacja wymaganych pakietow
-pkg_install software-properties-common
+# Install the software-properties-common package in order to add HashiCorp repo
+sudo apt install software-properties-common -y
 
-# Dodanie repozytorium HashiCorp z kluczem GPG (nowoczesna metoda)
-msg_info "Dodawanie repozytorium HashiCorp"
-add_repository_with_key \
-    "https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
-    "hashicorp" \
-    "https://apt.releases.hashicorp.com/gpg"
+# Add the HashiCorp repo
+sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 
 # Update and install
-pkg_update
-pkg_install vault
+sudo apt-get update && sudo apt-get install vault
 
 # Verifying the installation
 if vault -h ; then
-    msg_ok "Vault zainstalowany."
+    echo -e "\e[1;32mGotowe! \e[1;37mVault zainstalowany."
 else
-    msg_error "Instalacja się nie powiodła."
+    echo -e "\e[1;31mInstalacja się nie powiodła."
 fi

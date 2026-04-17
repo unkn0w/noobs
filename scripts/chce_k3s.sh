@@ -6,10 +6,6 @@
 # Edytowane przez: TORGiren @2025.06
 # Edytowane, dodanie możliwości wyboru wersji K3s i ustawienie domyślnej wersji na "stable"
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 VERSION=${1:-"stable"}
 
 function get_release() {
@@ -83,6 +79,6 @@ EOF
 /bin/systemctl daemon-reload
 
 # wlaczenie serwisu k3s oraz start uslugi k3s
-service_enable_now k3s.service
+systemctl enable --now k3s.service
 
 exit

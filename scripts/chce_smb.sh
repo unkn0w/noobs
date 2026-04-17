@@ -1,17 +1,16 @@
 #!/bin/bash
 # Author: Borys Gnaciński
-
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
-require_root
-
 path=""
 
+if [ $EUID != 0 ]
+then
+    echo "Uruchom skrypt jako root."
+    exit
+fi
+
 echo "[*] Instalowanie potrzebnych paczek..."
-pkg_update
-pkg_install samba
+sudo apt update
+sudo apt install -y samba
 
 echo "[*] Próba ustawienia katalogu udostępnianiego przez serwer SMB"
 if ! [ -d "/storage" ]
@@ -45,14 +44,14 @@ echo "[*] Dodawanie niezbędnych konfiguracji..."
 echo "[share]" >> /etc/samba/smb.conf
 echo "    comment = Samba dla $USER" >> /etc/samba/smb.conf
 echo "    path = $path" >> /etc/samba/smb.conf
-echo "    read only = no" >> /etc/samba/smb.conf
-echo "    browsable = yes" >> /etc/samba/smb.conf
+echo "    read only = no" >> /etc/samba/smb.conf 
+echo "    browsable = yes" >> /etc/samba/smb.conf 
 echo "    create mask = 0775" >> /etc/samba/smb.conf
 echo "    directory mask = 0775" >> /etc/samba/smb.conf
 
 echo "[*] Restartowanie serwera samba i dodawanie go do autostartu"
-service_restart smbd
-service_enable smbd
+sudo service smbd restart
+sudo systemctl enable smbd
 
 echo "[!] Ustaw hasło dla użytkownika '$USER':"
 sudo smbpasswd -a $USER

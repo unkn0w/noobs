@@ -2,10 +2,6 @@
 # Instalacja MIKRUS-CLI
 # Autor: Artur Stefanski
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 _maybe_show_help() {
   if [ "$1" == "--help" ] || [ "$1" == "-h" ] || [ -z $1 ]; then
     printf "
@@ -86,8 +82,8 @@ else
       SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
       sudo cp ${SCRIPTPATH}/../mikrus-cli/mikrus /usr/bin/mikrus
       sudo chmod +x /usr/bin/mikrus
-      pkg_update
-      pkg_install jq
+      sudo apt-get update
+      sudo apt-get install jq -y
       printf "
 Przyklady uzycia MIKRUS-CLI:
 \tmikrus --help

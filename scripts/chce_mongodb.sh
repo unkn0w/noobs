@@ -1,50 +1,37 @@
 #!/bin/bash
-# MongoDB instalator
+#
 # Authors: Kacper Adamczak, Janszczyrek
-# Refactored: noobs community (v2.0.0)
+# Version: 1.1
+#
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
 
-msg_info "Sprawdzenie uprawnien"
-require_root
+wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add - && { printf "Prawidłowo zaimportowano klucz do repozytorium MongoDB"; } || { sudo apt-get install gnupg; wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add - ;  printf "\nZainstalowano pakiet gnugp oraz prawidłowo zaimportowano klucz do repozytorium MongoDB\n";}
 
-msg_info "Dodawanie repozytorium MongoDB"
-add_repository_with_key \
-    "[ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" \
-    "mongodb-org-5.0.list" \
-    "https://www.mongodb.org/static/pgp/server-5.0.asc"
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
 
-msg_info "Instalacja MongoDB"
-pkg_update
-pkg_install mongodb-org
+sudo apt-get update
 
-msg_info "Uruchamianie MongoDB"
-if ! service_start mongod; then
-    msg_info "Przeladowanie daemonow systemd..."
-    systemctl daemon-reload
-    service_start mongod
-fi
+sudo apt-get install -y mongodb-org
 
-msg_ok "MongoDB zainstalowana i uruchomiona!"
+sudo systemctl start mongod && { printf "\nPrawidłowo uruchomiono MongoDB\n";} || { sudo systemctl daemon-reload; sudo systemctl start mongod
+}
 
-# Opcjonalna instalacja mongo-express
-if command -v npm &> /dev/null; then
-    msg_info "Instalacja mongo-express..."
-    npm install -g mongo-express
+printf "\nMongoDB jest poprawnie zainstalowana i uruchomiona\n"
 
-    if [[ -f /usr/lib/node_modules/mongo-express/config.default.js ]]; then
-        cp /usr/lib/node_modules/mongo-express/config.default.js /usr/lib/node_modules/mongo-express/config.js
 
-        ME_PASS=$(generate_random_string 16)
-        sed -i "s/password: getFileEnv(basicAuthPassword) || 'pass',/password: getFileEnv(basicAuthPassword) || '$ME_PASS',/g" \
-            /usr/lib/node_modules/mongo-express/config.js
-
-        msg_ok "mongo-express zainstalowany!"
-        msg_info "Haslo admina mongo-express: $ME_PASS"
-        msg_info "Uruchomienie: mongo-express --url mongodb://127.0.0.1:27017"
-    fi
+if ! command -v npm &> /dev/null
+then
+    printf "\nAby zainstalowac mongo-express potrzebujesz npm\n"
+    exit
 else
-    msg_info "npm nie jest zainstalowany - pominieto instalacje mongo-express"
+    printf "\nInstaluje mongo-express...\n"
+    sudo npm install -g mongo-express
+    sudo cp /usr/lib/node_modules/mongo-express/config.default.js /usr/lib/node_modules/mongo-express/config.js
+
+    ME_PASS=$(sudo < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c16)
+    sudo sed -i "s/password: getFileEnv(basicAuthPassword) || 'pass',/password: getFileEnv(basicAuthPassword) || '$ME_PASS',/g" /usr/lib/node_modules/mongo-express/config.js
+    printf "\nHaslo dla admina mongo-express: $ME_PASS\n"
+
+    printf "\nAby uruchomic mongo-express wpisz 'mongo-express --url mongodb://127.0.0.1:27017'\n"
+    exit
 fi

@@ -2,12 +2,11 @@
 # fail2ban
 # Autor: Bartlomiej Szyszko
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
-
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
-require_root
+if [[ $EUID -ne 0 ]]; then
+   echo -e "W celu instalacji tego pakietu potrzebujesz wyzszych uprawnien! Uzyj polecenia \033[1;31msudo ./chce_fail2ban.sh\033[0m lub zaloguj sie na konto roota i wywolaj skrypt ponownie."
+   exit 1
+fi
 
 # Zmienne konfiguracyjne
 BAN_TIME=30m
@@ -20,11 +19,11 @@ if [[ $SSH_PORT == "" ]]; then
    exit
 fi
 
-pkg_update
-pkg_install fail2ban
+apt update
+apt install -y fail2ban
 
 # Zatrzymaj usluge fail2ban
-service_stop fail2ban
+systemctl stop fail2ban
 
 # Lokalny plik z konfiguracyjny
 config=$(cat <<EOF
@@ -45,4 +44,4 @@ rm /etc/fail2ban/jail.local 2> /dev/null
 echo "$config" >> /etc/fail2ban/jail.local
 
 # Uruchomienie uslugi
-service_enable_now fail2ban
+systemctl enable --now fail2ban

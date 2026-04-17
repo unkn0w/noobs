@@ -1,13 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Tworzenie nowego uzytkownika, z dostepem do sudo i kopia authorized_keys
 
 # Autor: Radoslaw Karasinski, Grzegorz Ćwikliński, Szymon Hryszko, Artur Stefański
 
-# Zaladuj biblioteke noobs
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../lib/noobs_lib.sh" || exit 1
+# if no sudo, then exit
+if [ "$(id -u)" != "0" ]; then
+	echo "Musisz uruchomić ten skrypt jako root" 1>&2
+	echo "Spróbuj sudo $0"
+	exit 1
 
-require_root
+fi
 
 _check_if_user_exits() {
     given_user=$1
@@ -95,4 +97,4 @@ if [ -d /opt/noobs ]; then
    sudo chown -R $username:$username /home/$username/noobs
 fi
 
-msg_ok "Pomyślnie stworzono użytkownia ${username}."
+echo "Pomyślnie stworzono użytkownia ${username}."
