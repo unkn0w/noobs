@@ -1,5 +1,5 @@
 #!/bin/bash
-# Skrypt instaluje powłokę ZSH, dodatek oh-my-zsh, paczkę dodatkowych pluginów i aktywuje te rozszerzenia które mogą ułatwić pracę początkującycm
+# Skrypt instaluje powłokę ZSH, dodatek oh-my-zsh, paczkę dodatkowych pluginów i aktywuje te rozszerzenia które mogą ułatwić pracę początkującym
 # Autor: Jakub 'unknow' Mrugalski
 
 sudo apt update && sudo apt install zsh git
