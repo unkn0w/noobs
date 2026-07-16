@@ -3,13 +3,6 @@
 # Repozytorium: https://github.com/nvm-sh/nvm
 # Autor: Jakub Suchenek (itsanon.xyz)
 
-# Dozwól uruchamianie jako 'root', ale tylko wtedy, kiedy jest to jedyne konto.
-DEFAULT_USER=$(getent passwd 1000 | cut -d ":" -f 1)
-if [[ $EUID -eq 0 && -n $DEFAULT_USER ]]; then
-    echo -e "UWAGA: skrypt uruchomiony jako 'root'. Spróbuj jeszcze raz, ale bez 'sudo'."
-    exit 1
-fi
-
 if ( ! command -v git > /dev/null 2>&1 ); then
     echo "Instalowanie 'git'..."
     sudo apt-get update && sudo apt-get install git
