@@ -15,7 +15,7 @@ fi
 # Ręczna instalacja dla pewniejszych efektów, nie potrzebuje aktualizacji samego skryptu.
 # https://github.com/nvm-sh/nvm#manual-install
 echo "Pobieranie NVM..."
-export NVM_DIR="$HOME/.nvm"
+NVM_DIR="$HOME/.nvm"
 if [ ! -d $NVM_DIR ]; then
     git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 elif [ ! -d "$NVM_DIR/.git" ]; then
