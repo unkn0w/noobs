@@ -41,7 +41,7 @@ export NVM_DIR="\$HOME/.nvm"
 [ -s "\$NVM_DIR/bash_completion" ] && \. "\$NVM_DIR/bash_completion"  # This loads nvm bash_completion'
 EOF
 
-echo "Automatycznie ładowanie dla BASH..."
+echo "Automatyczne ładowanie dla BASH..."
 for SH_PROFILE in ".bashrc" ".profile" ; do
     if [ ! -f "$HOME/$SH_PROFILE" ]; then
         touch "$HOME/$SH_PROFILE"
@@ -52,7 +52,7 @@ for SH_PROFILE in ".bashrc" ".profile" ; do
 done
 
 if ( command -v zsh > /dev/null 2>&1 ); then
-    echo "Automatycznie ładowanie dla ZSH..."
+    echo "Automatyczne ładowanie dla ZSH..."
     if [ ! -f "$HOME/.zshrc" ]; then
         touch "$HOME/.zshrc"
     fi
