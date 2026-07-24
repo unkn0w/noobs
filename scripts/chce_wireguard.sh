@@ -3,6 +3,7 @@
 # Współautor: Jakub 'unknow' Mrugalski
 # Aktualizacja: Dawid Kasza
 # Aktualizacja2: Michał Skórcz
+# Aktualizacja3: Karol Adameczek
 set -e
 
 # Sprawdz uprawnienia przed wykonaniem skryptu instalacyjnego
@@ -97,7 +98,7 @@ wg pubkey < /etc/wireguard/privatekey > /etc/wireguard/publickey
 wg pubkey < /etc/wireguard/client-privatekey > /etc/wireguard/client-publickey
 
 # Generate server configuration using a generator script
-srv=$(hostname)
+srv=$(hostname | sed -E 's/^([a-z])[a-z]+([0-9]+)$/\1\2/')
 privkey=$(cat /etc/wireguard/privatekey)
 pubkey=$(cat /etc/wireguard/publickey)
 cliprivkey=$(cat /etc/wireguard/client-privatekey)
