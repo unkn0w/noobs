@@ -17,6 +17,11 @@ CONFIG_DIR="/root/.baserow"
 CONFIG_FILE="${CONFIG_DIR}/mikrus.cfg"
 CRON_FILE="/etc/cron.d/baserow_backuper"
 
+# Ścieżka do samego siebie. Wpis crona musi wskazywać realną lokalizację
+# skryptu, a nie zakładać /bin - narzędzie uruchomione z checkoutu repozytorium
+# ustawiało crona na nieistniejący plik i backup cicho nie działał.
+SELF_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+
 print_error() {
     echo -e "${RED}❌ $1${NC}"
 }
@@ -75,7 +80,7 @@ fi
 if [ "$1" != "RUN" ]; then
     randomMinute=$((RANDOM % 60))
     print_action "Konfiguruję automatyczny backup (godzina 4:${randomMinute})"
-    echo "${randomMinute} 4 * * * root /bin/baserow_backup RUN >/dev/null 2>&1" > "${CRON_FILE}"
+    echo "${randomMinute} 4 * * * root ${SELF_PATH} RUN >/dev/null 2>&1" > "${CRON_FILE}"
     print_success "Automatyczny skrypt backupu został aktywowany"
     print_info "Backupy trafią do: ${BACKUP_DIR}/"
     exit 0

@@ -5,8 +5,12 @@ if [ ! -d /root/.baserow ]; then
     exit 1
 fi
 
+# Narzędzia wołamy z katalogu, w którym leży ten skrypt. Dzięki temu działa
+# zarówno po instalacji w /bin, jak i uruchomione wprost z repozytorium.
+TOOLS_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+
 echo "Tworzę backup przed aktualizacją..."
-/bin/baserow_backup RUN || exit 1
+"${TOOLS_DIR}/baserow_backup" RUN || exit 1
 
 echo "Pobieram najnowszy obraz i odtwarzam kontener..."
-/bin/baserow_install
+"${TOOLS_DIR}/baserow_install"
