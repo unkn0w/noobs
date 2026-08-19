@@ -1,8 +1,11 @@
 #!/bin/bash
 # Skrypt tworzy backup Baserow w środowisku Mikrusowym
 
-# ile ostatnich backupów trzymać?
-LASTBACKUPS=7
+# ile dni trzymać backupy?
+KEEPDAYS=7
+
+# poniżej tylu bajtów archiwum uznajemy za podejrzane i krzyczymy
+MINARCHIVEBYTES=10240
 
 # Kolory
 RED='\033[31m'
@@ -11,7 +14,7 @@ YELLOW='\033[33m'
 NC='\033[0m'
 
 CONFIG_DIR="/root/.baserow"
-BACKUP_DIR="/backup/baserow"
+CONFIG_FILE="${CONFIG_DIR}/mikrus.cfg"
 CRON_FILE="/etc/cron.d/baserow_backuper"
 
 print_error() {
@@ -35,6 +38,35 @@ if [ ! -d "${CONFIG_DIR}" ]; then
     exit 1
 fi
 
+# Skąd bierzemy dane?
+# baserow_install zapisuje DATA_DIR_PATH do pliku konfiguracyjnego. Starsze
+# instalacje go nie mają i trzymają dowiązanie /root/.baserow/data -> gdzieś indziej.
+# readlink -f rozwiązuje dowiązanie, bo tar bez tego zarchiwizowałby sam symlink
+# zamiast danych - archiwum ważyłoby kilkaset bajtów i nie zawierało niczego.
+if [ -f "${CONFIG_FILE}" ]; then
+    source "${CONFIG_FILE}"
+fi
+DATA_DIR="$(readlink -f "${DATA_DIR_PATH:-${CONFIG_DIR}/data}" 2>/dev/null)"
+
+if [ -z "${DATA_DIR}" ] || [ ! -d "${DATA_DIR}" ]; then
+    print_error "Nie znajduję katalogu danych Baserow (${DATA_DIR_PATH:-${CONFIG_DIR}/data})"
+    print_info "Sprawdź wpis DATA_DIR_PATH w ${CONFIG_FILE}"
+    exit 1
+fi
+
+# Gdzie odkładamy archiwa?
+# Na Mikrusie /storage to osobny, duży wolumen - dysk systemowy bywa ciasny,
+# a backupy Baserow potrafią ważyć setki megabajtów.
+if [ -n "${BACKUP_PATH:-}" ]; then
+    BACKUP_DIR="${BACKUP_PATH}"
+elif [ -d "/backup/baserow" ]; then
+    BACKUP_DIR="/backup/baserow"
+elif [ -d "/storage" ]; then
+    BACKUP_DIR="/storage/backup/baserow"
+else
+    BACKUP_DIR="/backup/baserow"
+fi
+
 if [ ! -d "${BACKUP_DIR}" ]; then
     print_action "Tworzę katalog ${BACKUP_DIR}/"
     mkdir -p "${BACKUP_DIR}"
@@ -45,17 +77,21 @@ if [ "$1" != "RUN" ]; then
     print_action "Konfiguruję automatyczny backup (godzina 4:${randomMinute})"
     echo "${randomMinute} 4 * * * root /bin/baserow_backup RUN >/dev/null 2>&1" > "${CRON_FILE}"
     print_success "Automatyczny skrypt backupu został aktywowany"
+    print_info "Backupy trafią do: ${BACKUP_DIR}/"
     exit 0
 fi
 
-find "${BACKUP_DIR}/" -name "*.tar.gz" -type f -mtime +${LASTBACKUPS} -delete
-
 currentDate=$(date +%Y%m%d)
 archivePath="${BACKUP_DIR}/${currentDate}_baserow.tar.gz"
+tmpPath="${archivePath}.tmp"
 wasRunning=0
 
 print_info "Rozpoczynam backup Baserow..."
 print_info "Data backupu: ${currentDate}"
+print_info "Katalog danych: ${DATA_DIR}"
+
+# sprzątamy po ewentualnym przerwanym poprzednim przebiegu
+rm -f "${tmpPath}"
 
 if docker ps --format '{{.Names}}' | grep -q '^baserow$'; then
     wasRunning=1
@@ -64,10 +100,23 @@ if docker ps --format '{{.Names}}' | grep -q '^baserow$'; then
 fi
 
 print_action "Tworzę archiwum ${archivePath}"
-if tar -czf "${archivePath}" -C /root .baserow; then
-    print_success "Backup Baserow został utworzony: ${archivePath}"
-else
+
+# Redis trzyma kolejkę zadań, nie dane użytkownika - nie ma po co go archiwizować.
+# Piszemy do pliku tymczasowego, żeby przerwany backup nie zostawił po sobie
+# uciętego archiwum wyglądającego jak poprawna kopia.
+tarStatus=0
+tar -czf "${tmpPath}" \
+    --exclude="$(basename "${DATA_DIR}")/redis" \
+    -C "$(dirname "${DATA_DIR}")" "$(basename "${DATA_DIR}")" || tarStatus=$?
+
+if [ ${tarStatus} -eq 0 ]; then
+    print_action "Weryfikuję integralność archiwum"
+    gzip -t "${tmpPath}" || tarStatus=$?
+fi
+
+if [ ${tarStatus} -ne 0 ]; then
     print_error "Nie udało się utworzyć backupu Baserow"
+    rm -f "${tmpPath}"
     if [ "${wasRunning}" -eq 1 ]; then
         print_action "Przywracam działanie kontenera baserow po błędzie backupu"
         docker start baserow >/dev/null
@@ -75,14 +124,31 @@ else
     exit 1
 fi
 
+mv "${tmpPath}" "${archivePath}"
+
+# konfiguracja obok archiwum - bez niej odtworzenie wymaga zgadywania portu i domeny
+if [ -f "${CONFIG_FILE}" ]; then
+    cp "${CONFIG_FILE}" "${BACKUP_DIR}/${currentDate}_mikrus.cfg"
+fi
+
 if [ "${wasRunning}" -eq 1 ]; then
     print_action "Uruchamiam ponownie kontener baserow"
     docker start baserow >/dev/null
 fi
 
-if [ -f "${archivePath}" ]; then
-    file_size=$(stat -c %s "${archivePath}")
-    print_info "Rozmiar pliku backup: $(numfmt --to=iec ${file_size})"
+file_size=$(stat -c %s "${archivePath}")
+print_info "Rozmiar pliku backup: $(numfmt --to=iec ${file_size})"
+
+if [ "${file_size}" -lt "${MINARCHIVEBYTES}" ]; then
+    print_error "Archiwum jest podejrzanie małe - prawdopodobnie nie zawiera danych!"
+    print_info "Sprawdź zawartość: tar -tzvf ${archivePath}"
+    exit 1
 fi
+
+# retencję czyścimy dopiero po udanym backupie - inaczej nieudany przebieg
+# najpierw kasuje stare kopie, a potem nie tworzy nowej
+find "${BACKUP_DIR}/" -name "*_baserow.tar.gz" -type f -mtime +${KEEPDAYS} -delete
+find "${BACKUP_DIR}/" -name "*_mikrus.cfg" -type f -mtime +${KEEPDAYS} -delete
+find "${BACKUP_DIR}/" -name "*.tar.gz.tmp" -type f -mtime +1 -delete
 
 print_success "Backup Baserow zakończony pomyślnie!"

@@ -9,4 +9,4 @@ echo "Tworzę backup przed aktualizacją..."
 /bin/baserow_backup RUN || exit 1
 
 echo "Pobieram najnowszy obraz i odtwarzam kontener..."
-baserow_install
+/bin/baserow_install
