@@ -1,0 +1,222 @@
+#!/bin/bash
+#
+# Skrypt instalujący aplikację Baserow
+# Dostosowany do użycia w środowisku Mikrusa - https://mikr.us
+#
+
+MINIMALRAM=2000
+
+# kolorki
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NORMAL='\033[0m'
+
+availableMemory=$(free -m | awk '/^Mem:/ {print $2}')
+
+if [ "${availableMemory}" -gt "${MINIMALRAM}" ]; then
+    echo -e "${GREEN}System ma ponad ${MINIMALRAM}MB pamięci RAM${NORMAL}"
+else
+    echo -e "${RED}System ma mniej niż ${MINIMALRAM}MB pamięci RAM - to nie zadziała...${NORMAL}"
+    exit 2
+fi
+
+# wczytanie konfiguracji z pliku (jeśli istnieje)
+CONFIG_DIR="/root/.baserow"
+CONFIG_FILE="${CONFIG_DIR}/mikrus.cfg"
+if [ -f "${CONFIG_FILE}" ]; then
+    echo -e " ${GREEN}> Wczytuję konfigurację z pliku${NORMAL}"
+    source "${CONFIG_FILE}"
+    saved_port="${PORT:-}"
+    saved_domain="${DOMAIN:-}"
+    saved_version="${BASEROW_VERSION:-}"
+    saved_image_ref="${BASEROW_IMAGE_REF:-}"
+    saved_data_dir="${DATA_DIR_PATH:-}"
+    saved_memory="${MEMORY_LIMIT:-}"
+    saved_minimal="${RUN_MINIMAL:-}"
+    saved_backup_path="${BACKUP_PATH:-}"
+fi
+
+# Gdzie trzymamy dane?
+# Mikrus daje dodatkową przestrzeń w /storage, a dysk systemowy bywa ciasny.
+# Istniejące instalacje zostają tam, gdzie już są - kolejność warunków to gwarantuje.
+if [ -n "${saved_data_dir}" ]; then
+    DATA_DIR="${saved_data_dir}"
+elif [ -d "${CONFIG_DIR}/data" ]; then
+    DATA_DIR="${CONFIG_DIR}/data"
+elif [ -d "/storage" ]; then
+    DATA_DIR="/storage/baserow"
+else
+    DATA_DIR="${CONFIG_DIR}/data"
+fi
+
+# Tryb oszczędny - domyślnie włączony.
+# Bez tego Baserow uruchamia osobny worker eksportu i wiele procesów gunicorn.
+# Na małej maszynie kosztuje to grubo ponad 800MB RAM ponad realną potrzebę.
+# Wyłącz ustawiając RUN_MINIMAL=no w pliku konfiguracyjnym.
+runMinimal="${saved_minimal:-yes}"
+
+# Twardy limit pamięci kontenera w MB.
+# Puste = cała pamięć maszyny minus 100MB (zachowanie domyślne).
+# Jeśli dzielisz Mikrusa z innymi usługami, ustaw MEMORY_LIMIT=2048
+# w pliku konfiguracyjnym - inaczej Baserow pod obciążeniem wypcha resztę.
+memoryLimit="${saved_memory:-}"
+
+# alternatywny numer portu
+if [ -n "$1" ] && [[ "$1" =~ ^[0-9]+$ ]]; then
+    portNR=$1
+    echo -e " ${GREEN}> Używam podanego portu: ${portNR}${NORMAL}"
+elif [ -n "${saved_port}" ]; then
+    portNR="${saved_port}"
+    echo -e " ${GREEN}> Używam portu z pliku konfiguracyjnego: ${portNR}${NORMAL}"
+else
+    portNR=$(hostname -f | grep -Eo '[0-9]+')
+    portNR=$((30000 + portNR))
+    echo -e " ${GREEN}> Używam domyślnego portu Mikrusa dla usług: ${portNR}${NORMAL}"
+fi
+
+# mamy dockera?
+if command -v docker &> /dev/null; then
+    echo -e " ${GREEN}> Docker jest zainstalowany${NORMAL}"
+else
+    echo -e " ${YELLOW}> Instaluję Dockera${NORMAL}"
+    curl -fsSL https://get.docker.com | sh -
+fi
+
+if [ ! -d "${CONFIG_DIR}" ]; then
+    echo -e " ${YELLOW}> Tworzę katalog domowy dla Baserow${NORMAL}"
+    mkdir -p "${CONFIG_DIR}"
+else
+    echo -e " ${GREEN}> Katalog domowy już istnieje - użyję go${NORMAL}"
+fi
+
+if [ ! -d "${DATA_DIR}" ]; then
+    echo -e " ${YELLOW}> Tworzę katalog na dane Baserow: ${DATA_DIR}${NORMAL}"
+    mkdir -p "${DATA_DIR}"
+else
+    echo -e " ${GREEN}> Katalog na dane już istnieje - użyję go: ${DATA_DIR}${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Ustalam wersję Baserow${NORMAL}"
+docker pull baserow/baserow:latest
+
+baserowVersion=$(docker image inspect baserow/baserow:latest --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' 2>/dev/null)
+baserowImageRef=$(docker image inspect baserow/baserow:latest --format '{{ index .RepoDigests 0 }}' 2>/dev/null)
+
+if [ -z "${baserowVersion}" ] || [ "${baserowVersion}" = "<no value>" ]; then
+    if [ -n "${baserowImageRef}" ] && [ "${baserowImageRef}" != "<no value>" ]; then
+        baserowVersion="latest"
+        echo -e " ${YELLOW}> Obraz nie podaje wersji semantycznej - przypinam instalację po digest${NORMAL}"
+    elif [ -n "${saved_image_ref}" ]; then
+        baserowImageRef="${saved_image_ref}"
+        baserowVersion="${saved_version:-latest}"
+        echo -e " ${YELLOW}> Nie udało się odczytać danych latest - używam zapisanej referencji obrazu${NORMAL}"
+    else
+        echo -e " ${RED}> Nie udało się ustalić referencji obrazu Baserow${NORMAL}"
+        exit 2
+    fi
+else
+    echo -e " ${GREEN}> Aktualna wersja latest to: ${baserowVersion}${NORMAL}"
+fi
+
+if [ -z "${baserowImageRef}" ] || [ "${baserowImageRef}" = "<no value>" ]; then
+    baserowImageRef="baserow/baserow:${baserowVersion}"
+fi
+
+# wsparcie dla alternatywnej domeny
+if [ -n "$2" ] && [[ "$2" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    domain="$2"
+    echo -e " ${GREEN}> Używam podanej domeny: ${domain}${NORMAL}"
+elif [ -n "${saved_domain}" ] && [ -z "${1:-}" ] && [ -z "${2:-}" ]; then
+    domain="${saved_domain}"
+    echo -e " ${GREEN}> Używam domeny z pliku konfiguracyjnego: ${domain}${NORMAL}"
+else
+    eval "$(curl -s -k -6 https://info.mikr.us)"
+    domain="${info_imie_id}-${portNR}.wykr.es"
+    echo -e " ${GREEN}> Używam domyślnej domeny: ${domain}${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Zapisuję konfigurację do pliku${NORMAL}"
+cat > "${CONFIG_FILE}" << EOF
+PORT=${portNR}
+DOMAIN=${domain}
+BASEROW_VERSION=${baserowVersion}
+BASEROW_IMAGE_REF=${baserowImageRef}
+DATA_DIR_PATH=${DATA_DIR}
+MEMORY_LIMIT=${memoryLimit}
+RUN_MINIMAL=${runMinimal}
+BACKUP_PATH=${saved_backup_path}
+EOF
+
+# budujemy parametry uruchomienia
+runArgs=(
+    -itd
+    --name baserow
+    -p "${portNR}:80"
+    -v "${DATA_DIR}:/baserow/data"
+    --restart unless-stopped
+    -e "BASEROW_PUBLIC_URL=https://${domain}"
+)
+
+if [ -n "${memoryLimit}" ]; then
+    echo -e " ${GREEN}> Limit pamięci kontenera: ${memoryLimit}MB${NORMAL}"
+    runArgs+=( --memory="${memoryLimit}m" --memory-swap="${memoryLimit}m" --memory-swappiness=0 )
+else
+    echo -e " ${YELLOW}> Limit pamięci kontenera: $((availableMemory - 100))MB (cała maszyna)${NORMAL}"
+    echo -e " ${YELLOW}  Dzielisz Mikrusa z innymi usługami? Ustaw MEMORY_LIMIT w ${CONFIG_FILE}${NORMAL}"
+    runArgs+=( --memory="$((availableMemory - 100))m" --memory-swap="$((availableMemory - 100))m" --memory-swappiness=0 )
+fi
+
+if [ "${runMinimal}" != "no" ]; then
+    echo -e " ${GREEN}> Tryb oszczędzania RAM: włączony${NORMAL}"
+    runArgs+=(
+        -e BASEROW_AMOUNT_OF_WORKERS=1
+        -e BASEROW_AMOUNT_OF_GUNICORN_WORKERS=1
+        -e BASEROW_RUN_MINIMAL=yes
+    )
+else
+    echo -e " ${YELLOW}> Tryb oszczędzania RAM: wyłączony (RUN_MINIMAL=no)${NORMAL}"
+fi
+
+echo -e " ${GREEN}> Uruchamiam kontener...${NORMAL}"
+
+# porządki
+docker rm -f baserow >/dev/null 2>&1
+
+docker run "${runArgs[@]}" "${baserowImageRef}"
+
+echo -n -e " ${GREEN}> Startowanie aplikacji...${NORMAL}"
+
+cnt=120
+
+while true; do
+  http_code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.0.1:${portNR}" 2>/dev/null || true)
+
+  if [ -n "${http_code}" ] && [ "${http_code}" != "000" ]; then
+    break
+  fi
+
+  if ! docker ps --format '{{.Names}}' | grep -q '^baserow$'; then
+    echo -e "${RED}Kontener baserow zakończył pracę podczas startu${NORMAL}"
+    echo -e "${YELLOW}Sprawdź logi poleceniem: docker logs baserow${NORMAL}"
+    exit 2
+  fi
+
+  if [ ${cnt} -eq 0 ]; then
+    echo -e "${RED}Coś nie działa :(${NORMAL}"
+    echo -e "${YELLOW}Sprawdź logi poleceniem: docker logs baserow${NORMAL}"
+    exit 2
+  fi
+
+  echo -n "."
+  sleep 5
+  cnt=$((cnt - 1))
+done
+
+# aktywujemy backup dla usera
+"$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/baserow_backup"
+
+echo -e "\n\n${GREEN}Twoja instancja Baserow jest pod adresem:${NORMAL}\n"
+echo -e "https://${domain}\n\n"
+
+echo -e "\n${NORMAL}Gdy będziesz chciał zaktualizować swoją instancję użyj ${YELLOW}baserow_update${NORMAL}\n\n"

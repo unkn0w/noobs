@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ ! -d /root/.baserow ]; then
+    echo "Baserow nie jest zainstalowany. Użyj najpierw baserow_install."
+    exit 1
+fi
+
+# Narzędzia wołamy z katalogu, w którym leży ten skrypt. Dzięki temu działa
+# zarówno po instalacji w /bin, jak i uruchomione wprost z repozytorium.
+TOOLS_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+
+echo "Tworzę backup przed aktualizacją..."
+"${TOOLS_DIR}/baserow_backup" RUN || exit 1
+
+echo "Pobieram najnowszy obraz i odtwarzam kontener..."
+"${TOOLS_DIR}/baserow_install"
