@@ -46,8 +46,9 @@ EOF
 [ "$EUID" -eq 0 ] && { err "Uruchamianie jako root jest niebezpieczne. Uzyj zwyklego uzytkownika."; }
 sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
 
-# sprawdz port
-port="${1:-80}"
+# sprawdz port (domyslnie port TCP/UDP przydzielony do tego kontenera przez Mikrusa)
+id="$(hostname)"; id="${id##*[!0-9]}"
+port="${1:-30${id}}"
 status "sprawdzanie portu $port"
 [ "$port" -eq "$port" ] 2>/dev/null || { echo "Port musi byc liczba!"; exit 2; }
 [ "$port" -le 1024 ] && as_root=true || as_root=false 

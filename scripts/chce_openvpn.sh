@@ -59,7 +59,8 @@ if [[ ! -c /dev/net/tun ]]; then
 fi
 
 if [[ -z "$port" ]]; then
-    port="$(( 20000 + $(hostname | grep -o '[0-9]\+') ))"
+    id="$(hostname)"; id="${id##*[!0-9]}"
+    port="20${id}"
 fi
 
 if lsof -i:$port > /dev/null 2>&1 ; then

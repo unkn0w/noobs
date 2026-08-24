@@ -6,8 +6,9 @@ status() {
     echo "[x] $1"
 }
 
-read -p "Podaj port, na którym ma działać Jenkins. Brak podania numeru spowoduje ustawienie portu 80:" port
-port=${port:-80}
+id="$(hostname)"; id="${id##*[!0-9]}"
+read -p "Podaj port, na którym ma działać Jenkins. Brak podania numeru spowoduje ustawienie przydzielonego przez Mikrusa portu 30${id}:" port
+port=${port:-30${id}}
 status "Jenkins będzie nasłuchiwał na porcie $port"
 
 status "instalacja wymaganych pakietow"

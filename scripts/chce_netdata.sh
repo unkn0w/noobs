@@ -20,8 +20,9 @@ done
 
 
 if [ -z "$port" ]; then
-    echo "Give desired port for netdata: (i.e. 20xxx or 30xxx):"
-    read -r port
+    id="$(hostname)"; id="${id##*[!0-9]}"
+    read -p "Podaj port dla netdata [domyslnie: 30${id}]: " port
+    port=${port:-30${id}}
 fi
 
 extra_args=()
