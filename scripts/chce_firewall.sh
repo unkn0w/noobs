@@ -62,7 +62,7 @@ fi
 
 echo "Finalizowanie konfiguracji..."
 
-sudo ufw enable
+sudo ufw --force enable
 
 echo "✅ Firewall został włączony."
 

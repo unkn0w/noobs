@@ -57,6 +57,20 @@ apt install -y fail2ban
 # Zatrzymaj usluge fail2ban
 systemctl stop fail2ban
 
+# Akcja Pushera tylko na Mikrusie (gdzie dostepna jest komenda 'pusher')
+ACTION="iptables-multiport"
+if command -v pusher &> /dev/null; then
+   ACTION="iptables-multiport
+           pusher-notify"
+
+   # Konfiguracja akcji Pushera
+   cat > /etc/fail2ban/action.d/pusher-notify.conf <<'EOF'
+[Definition]
+actionban   = echo "Fail2ban: zbanowano <ip> na porcie <port> po <failures> nieudanych probach logowania." | pusher fail2ban_ban
+actionunban = echo "Fail2ban: odbanowano <ip>" | pusher fail2ban_unban
+EOF
+fi
+
 # Lokalny plik konfiguracyjny
 config=$(cat <<EOF
 [DEFAULT]
@@ -70,20 +84,12 @@ enabled  = true
 port     = $SSH_PORT
 logpath  = %(sshd_log)s
 backend  = %(sshd_backend)s
-action   = iptables-multiport
-           pusher-notify
+action   = $ACTION
 EOF
 )
 
 rm /etc/fail2ban/jail.local 2> /dev/null
 echo "$config" >> /etc/fail2ban/jail.local
-
-# Konfiguracja akcji Pushera
-cat > /etc/fail2ban/action.d/pusher-notify.conf <<'EOF'
-[Definition]
-actionban   = echo "Fail2ban: zbanowano <ip> na porcie <port> po <failures> nieudanych probach logowania." | pusher fail2ban_ban
-actionunban = echo "Fail2ban: odbanowano <ip>" | pusher fail2ban_unban
-EOF
 
 # Uruchomienie uslugi
 systemctl enable --now fail2ban

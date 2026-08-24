@@ -8,10 +8,11 @@ then
     exit
 fi
 
-primary_user="$(ls /home/ | head -1)"
+primary_user="$(ls /home/ | grep -vx 'lost+found' | head -1)"
 
 # ssh securing
 securing_ssh(){
+    cp /etc/ssh/sshd_config "/etc/ssh/sshd_config.bak-$(date +%s)" # backup na wypadek problemow
     echo "" > /etc/ssh/sshd_config # cleaning config
     echo "Include /etc/ssh/sshd_config.d/*.conf" >> /etc/ssh/sshd_config
     echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
@@ -67,7 +68,7 @@ echo "[*] Zabezpieczanie ssh..."
 securing_ssh
 
 # verifying config
-if [ "$(sshd -t)" ]
+if ! sshd -t
 then
     echo "-----------------------------------------------------------"
     echo "[!] Powyższe błędy występują w pliku '/etc/ssh/sshd_config'"
@@ -82,6 +83,7 @@ sudo addgroup ssh_group
 echo "[*] Dodawanie użytkownika do grupy 'ssh_group'..."
 gpasswd -a "$primary_user" ssh_group # making sure the user has access to sudo
 gpasswd -a "$primary_user" sudo # making sure the user has access to sudo
+gpasswd -a root ssh_group # AllowGroups blokowaloby login roota mimo PermitRootLogin
 
 echo "[*] Kopiowanie kluczy ssh"
 
@@ -98,7 +100,9 @@ else
     fi
 
     cp /root/.ssh/authorized_keys /home/"$primary_user"/.ssh/authorized_keys
-    chown "$primary_user":"$primary_user" /home/$primary_user/.ssh/*
+    chown -R "$primary_user":"$primary_user" /home/"$primary_user"/.ssh
+    chmod 700 /home/"$primary_user"/.ssh
+    chmod 600 /home/"$primary_user"/.ssh/authorized_keys
 fi
 
 echo "[*] Restartowanie usługi 'ssh'"

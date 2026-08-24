@@ -28,7 +28,6 @@ else
 
 apt install w3m -y
 
-check_user_exist=$(cat /etc/passwd | grep "$1")
 check_number='^[0-9]+$'
 db_user="$1"
 db_port="$2"
@@ -37,7 +36,7 @@ sciezka="$4"
 service_name="mariadb-${db_user}-${db_port}.service"
 service_path="/etc/systemd/system/${service_name}"
 
-if [[ $check_user_exist == "root" ]]; then
+if [[ "$db_user" == "root" ]]; then
 echo "Userem nie może być root!"
 exit 1
 fi
@@ -52,12 +51,12 @@ if [ -z $line ]; then
     exit 1
 fi
 
-if [[ -z $check_user_exist ]] ; then
+if ! id -u "$db_user" &>/dev/null ; then
 useradd -M -N -s /usr/sbin/nologin "$db_user"
 fi
 
 mkdir -p "$sciezka"
-cd "$sciezka"
+cd "$sciezka" || exit 1
 versions=$(curl https://mariadb.com/docs/release-notes/latest-releases | w3m -dump -T text/html | grep -oP 'MariaDB\s\d+\.\d+(\.\d+)?' | sed 's/MariaDB\s//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u)
 latest=$(echo "$versions" | grep "^$line\." | sort -V | tail -n1)
 wget https://mirror.vpsfree.cz/mariadb/mariadb-"$latest"/bintar-linux-systemd-x86_64/mariadb-"$latest"-linux-systemd-x86_64.tar.gz -O "$4"/mariadb.tar.gz

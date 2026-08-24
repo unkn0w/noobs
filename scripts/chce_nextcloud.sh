@@ -22,7 +22,8 @@ apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip php8.1
 
 #Configuring mariaDB
 #/etc/init.d/mysql start
-mysql -u"$DB_USER" -p"$DB_PASS" -e "CREATE USER '$USERNAME'@'localhost' IDENTIFIED BY '$PASSWORD';
+# Swiezy pakiet mariadb-server loguje roota przez unix_socket (bez hasla) - $DB_PASS nie jest jeszcze ustawione w bazie.
+mysql -u"$DB_USER" -e "CREATE USER '$USERNAME'@'localhost' IDENTIFIED BY '$PASSWORD';
 CREATE DATABASE IF NOT EXISTS nextcloud CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 GRANT ALL PRIVILEGES ON nextcloud.* TO '$USERNAME'@'localhost';
 FLUSH PRIVILEGES;"

@@ -16,8 +16,8 @@ sudo apt install -y gnupg
 echo
 
 status "dodawanie repozytorium Jenkinsa"
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo apt-key add -
-sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo gpg --dearmor -o /usr/share/keyrings/jenkins-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] http://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
 
 status "aktualizacja repozytoriow"
 sudo apt update
@@ -30,9 +30,9 @@ echo
 
 status "poprawki w konfiguracji"
 sudo systemctl stop jenkins
-sed -i 's|User=jenkins|User=root|' /lib/systemd/system/jenkins.service
-sed -i "s|JENKINS_PORT=8080|JENKINS_PORT=$port|" /lib/systemd/system/jenkins.service
-sed -i 's|JAVA_OPTS=-Djava.awt.headless=true|JAVA_OPTS=-Djava.awt.headless=true -Xms256m -Xmx512m|' /lib/systemd/system/jenkins.service
+sudo sed -i 's|User=jenkins|User=root|' /lib/systemd/system/jenkins.service
+sudo sed -i "s|JENKINS_PORT=8080|JENKINS_PORT=$port|" /lib/systemd/system/jenkins.service
+sudo sed -i 's|JAVA_OPTS=-Djava.awt.headless=true|JAVA_OPTS=-Djava.awt.headless=true -Xms256m -Xmx512m|' /lib/systemd/system/jenkins.service
 sudo systemctl daemon-reload
 echo
 
@@ -41,4 +41,4 @@ sudo systemctl start jenkins
 echo
 
 echo -n "Gotowe. Jenkins nasłuchuje na porcie $port. Hasło początkowe: "
-cat /var/lib/jenkins/secrets/initialAdminPassword
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword

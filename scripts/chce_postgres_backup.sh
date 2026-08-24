@@ -27,7 +27,7 @@ if PGPASSWORD="${DB_PASSWORD}" pg_dump -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_
     echo "Dumping database finished successfully"
     
     # Delete old backups, but only if a current backup exists
-    find "${BACKUP_DIR}" -type f -prune -mtime +"${NUMBER_OF_DAYS}" -exec rm -f {} \;
+    find "${BACKUP_DIR}" -maxdepth 1 -type f -name "${DB_NAME}_*.xz" -mtime +"${NUMBER_OF_DAYS}" -exec rm -f {} \;
     echo "Old backups deleted"
 else
     echo "Error: Dumping database failed"

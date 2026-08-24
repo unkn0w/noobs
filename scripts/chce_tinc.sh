@@ -14,7 +14,7 @@ node_ip=10.0.0.1/32
 subnet=10.0.0.0/24
 
 apt update
-apt install tinc --yes
+apt install tinc dnsutils --yes
 
 mkdir -p /etc/tinc/$network_name/hosts
 
@@ -29,7 +29,8 @@ touch /etc/tinc/$network_name/hosts/$server_name
 echo "Address = $public_ip" >> /etc/tinc/$network_name/hosts/$server_name
 echo "Subnet = $node_ip" >> /etc/tinc/$network_name/hosts/$server_name
 
-tincd -n $network_name -K4096
+# dwa Entery akceptuja domyslne sciezki kluczy, o ktore tincd pyta interaktywnie
+printf '\n\n' | tincd -n $network_name -K4096
 
 touch /etc/tinc/$network_name/tinc-up
 echo "#!/bin/sh" >> /etc/tinc/$network_name/tinc-up
