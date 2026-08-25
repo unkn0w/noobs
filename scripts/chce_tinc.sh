@@ -24,6 +24,10 @@ echo "AddressFamily = ipv4" >> /etc/tinc/$network_name/tinc.conf
 echo "Interface = tun0" >> /etc/tinc/$network_name/tinc.conf
 
 public_ip=`dig +short myip.opendns.com @resolver1.opendns.com`
+if [ -z "$public_ip" ]; then
+    echo "UWAGA: nie udalo sie ustalic publicznego IP przez dig (zapytania do resolver1.opendns.com moga byc filtrowane w tej sieci)." >&2
+    echo "Adres w /etc/tinc/$network_name/hosts/$server_name zostanie pusty - popraw go recznie przed uruchomieniem tinc." >&2
+fi
 
 touch /etc/tinc/$network_name/hosts/$server_name
 echo "Address = $public_ip" >> /etc/tinc/$network_name/hosts/$server_name

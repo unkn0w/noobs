@@ -95,7 +95,17 @@ docker rm -f pg_n8n >/dev/null 2>&1
 docker rm -f watchtower_n8n >/dev/null 2>&1
 docker pull n8nio/n8n:latest
 #docker pull postgres:13
-docker pull pgvector/pgvector:pg15
+# n8n aktualnie wymaga Postgres 16+ (17 zalecany, 15 juz nie jest wspierany) - nowe instalacje
+# dostaja pg17. Jesli w ~/.pg_n8n jest juz zainicjalizowana baza starszej wersji (np. z wczesniejszej
+# instalacji tym skryptem), trzeba uzyc zgodnego obrazu, bo Postgres nie czyta danych innej wersji
+# majorowej bez pg_upgrade - podmiana binarki "w miejscu" nie uruchomi sie wcale.
+PG_IMAGE_TAG="pg17"
+if [ -f ~/.pg_n8n/PG_VERSION ]; then
+  existing_pg_version="$(cat ~/.pg_n8n/PG_VERSION)"
+  PG_IMAGE_TAG="pg${existing_pg_version}"
+  echo -e "${YELLOW}Wykryto istniejące dane PostgreSQL w wersji ${existing_pg_version} - używam zgodnego obrazu pgvector/pgvector:${PG_IMAGE_TAG}${NORMAL}"
+fi
+docker pull pgvector/pgvector:${PG_IMAGE_TAG}
 docker pull nickfedor/watchtower
 
 #uruchamiamy DB
@@ -106,7 +116,7 @@ docker run -itd \
   --restart unless-stopped \
   --name pg_n8n \
   -v ~/.pg_n8n:/var/lib/postgresql/data \
-  pgvector/pgvector:pg15
+  pgvector/pgvector:${PG_IMAGE_TAG}
 
 until docker exec pg_n8n pg_isready -q; do
   echo "Czekam na PostgreSQL..."

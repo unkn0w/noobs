@@ -51,6 +51,9 @@ echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
 SSH_PASS="$(openssl rand -base64 12)"
 useradd -m cms -s /bin/bash
 echo cms:${SSH_PASS} | chpasswd
+# useradd -m tworzy katalog domowy z uprawnieniami 750 - bez +x dla "innych" apache (www-data)
+# nie może wejść do /home/cms/public_html, co daje 403 Forbidden zaraz po instalacji.
+chmod o+x /home/cms
 
 echo -e "\e[1;32mBlokada dostępu SSH \e[0m"
 cat >> /etc/ssh/sshd_config <<EOL
@@ -109,8 +112,8 @@ cat > /etc/apache2/sites-available/cms.conf <<EOL
         Require all granted
      </Directory>
 
-     ErrorLog ${APACHE_LOG_DIR}/typo3_error.log
-     CustomLog ${APACHE_LOG_DIR}/typo3_access.log combined
+     ErrorLog /var/log/apache2/typo3_error.log
+     CustomLog /var/log/apache2/typo3_access.log combined
 
 </VirtualHost>
 EOL

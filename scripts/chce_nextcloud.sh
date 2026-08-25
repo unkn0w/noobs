@@ -16,9 +16,14 @@ NEXT_CLOUD_PASS=$(head -c 100 /dev/urandom | tr -dc A-Za-z0-9 | head -c13)
 
 #Installing prerequisites https://docs.nextcloud.com/server/latest/admin_manual/installation/example_ubuntu.html
 apt update
-apt install -y apache2 mariadb-server libapache2-mod-php8.1
-apt install -y php8.1-gd php8.1-mysql php8.1-curl php8.1-mbstring php8.1-intl
-apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip php8.1-fpm
+# Ubuntu 24.04 (noble) instaluje domyślnie PHP 8.3 - pakietów php8.1-* nie ma bez tego PPA,
+# co wcześniej wywalało całą komendę apt install (a razem z nią apache2 i mariadb-server).
+apt install -y software-properties-common
+add-apt-repository ppa:ondrej/php -y
+apt update
+apt install -y apache2 mariadb-server libapache2-mod-php8.1 || { echo "Instalacja apache2/mariadb-server/php8.1 nie powiodła się."; exit 1; }
+apt install -y php8.1-gd php8.1-mysql php8.1-curl php8.1-mbstring php8.1-intl || { echo "Instalacja modułów PHP nie powiodła się."; exit 1; }
+apt install -y php8.1-gmp php8.1-bcmath php-imagick php8.1-xml php8.1-zip php8.1-fpm || { echo "Instalacja modułów PHP nie powiodła się."; exit 1; }
 
 #Configuring mariaDB
 #/etc/init.d/mysql start
@@ -31,12 +36,21 @@ FLUSH PRIVILEGES;"
 #Downloading nextcloud tar.bz2 file
 apt install -y wget tar curl
 
-nextcloud_link=$(curl https://nextcloud.com/install/\#instructions-server \
-	| grep -Eo 'https://.+\/releases\/.+\.tar\.bz2"' | sed 's/"//g')
+# Poprzednio parsowany link ze strony nextcloud.com/install zwracał dwa zduplikowane
+# URL-e sklejone znakiem nowej linii. Oficjalny, stabilny link do najnowszego wydania
+# (używany też przez chce_nextcloud_v2.sh) omija ten problem całkowicie.
+nextcloud_link="https://download.nextcloud.com/server/releases/latest.tar.bz2"
 nextcloud_tmp="/tmp/nextcloud.tar.bz2"
 
-wget "$nextcloud_link" -O "$nextcloud_tmp"
-tar -xf "$nextcloud_tmp"
+if ! wget "$nextcloud_link" -O "$nextcloud_tmp"; then
+    echo "Pobieranie Nextcloud nie powiodło się." >&2
+    exit 1
+fi
+if ! tar -xf "$nextcloud_tmp" -C /tmp; then
+    echo "Rozpakowanie archiwum Nextcloud nie powiodło się." >&2
+    exit 1
+fi
+cd /tmp || exit 1
 
 #Copy nextcloud to apache folder
 rm /var/www/html/index.html

@@ -16,16 +16,23 @@ sudo apt install -y gnupg
 echo
 
 status "dodawanie repozytorium Jenkinsa"
-wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo gpg --dearmor -o /usr/share/keyrings/jenkins-keyring.gpg
+# Klucz GPG Jenkinsa jest rotowany (nazwa pliku zawiera rok) - jesli sztywno wpisany rok
+# jest przestarzały, apt update kończy się NO_PUBKEY i Jenkins nigdy się nie instaluje.
+jenkins_key_url=$(curl -s https://pkg.jenkins.io/debian-stable/ | grep -oE 'jenkins\.io-[0-9]{4}\.key' | sort -u | tail -n1)
+jenkins_key_url="https://pkg.jenkins.io/debian-stable/${jenkins_key_url:-jenkins.io-2023.key}"
+wget -q -O - "$jenkins_key_url" | sudo gpg --dearmor -o /usr/share/keyrings/jenkins-keyring.gpg || { echo "Pobranie klucza GPG Jenkinsa nie powiodło się ($jenkins_key_url)."; exit 1; }
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.gpg] http://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
 
 status "aktualizacja repozytoriow"
-sudo apt update
+if ! sudo apt update; then
+    echo "apt update nie powiodło się - sprawdź czy klucz GPG Jenkinsa ($jenkins_key_url) jest aktualny." >&2
+    exit 1
+fi
 echo
 
 status "instalacja Jenkinsa i Javy JRE17"
-sudo apt install -y openjdk-17-jre-headless
-sudo apt install -y jenkins
+sudo apt install -y openjdk-17-jre-headless || { echo "Instalacja Java 17 nie powiodła się."; exit 1; }
+sudo apt install -y jenkins || { echo "Instalacja Jenkinsa nie powiodła się."; exit 1; }
 echo
 
 status "poprawki w konfiguracji"

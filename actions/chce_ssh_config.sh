@@ -83,7 +83,7 @@ else
     header="$user-$host-$port"
 fi
 
-ssh-keygen -t rsa -b 4096 -f "$ssh_key_file" -C "$USER@$HOSTNAME"
+ssh-keygen -t rsa -b 4096 -N "" -f "$ssh_key_file" -C "$USER@$HOSTNAME"
 
 touch ~/.ssh/config # just in case if file was not created in past
 if ! grep -q "$header" ~/.ssh/config ; then

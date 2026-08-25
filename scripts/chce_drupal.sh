@@ -68,6 +68,9 @@ echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
 SSH_PASS="$(openssl rand -base64 12)"
 useradd -m drupal -s /bin/bash
 echo drupal:${SSH_PASS} | chpasswd
+# useradd -m tworzy katalog domowy z uprawnieniami 750 - bez +x dla "innych" www-data (nginx)
+# nie może wejść do /home/drupal, więc świeżo zainstalowana strona jest 100% niedostępna.
+chmod o+x /home/drupal
 
 echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
 sed -i 's,^memory_limit =.*$,memory_limit = 768M,' /etc/php/8.0/fpm/php.ini

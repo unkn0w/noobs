@@ -30,6 +30,7 @@ find_output_dir(){
 }
 
 install_packages(){
+    sudo apt-get install -y acl
     sudo wget https://mikr.us/tools/rsnappush -O /usr/bin/rsnappush
     sudo chmod +x /usr/bin/rsnappush
 }

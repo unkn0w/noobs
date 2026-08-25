@@ -48,7 +48,7 @@ apt install -y curl
 echo
 
 # install netdata
-bash <(curl -Ss https://my-netdata.io/kickstart.sh) "${extra_args[@]}"
+bash <(curl -SsL https://my-netdata.io/kickstart.sh) "${extra_args[@]}"
 
 # change default netdata port and restart service
 # (nowy, minimalny netdata.conf czesto nie zawiera juz linii "# default port = 19999")

@@ -189,7 +189,8 @@ echo "$response" | jq -C
 
 # Sprawdzenie statusu w odpowiedzi (jeśli API zwraca status)
 status=$(echo "$response" | jq -r '.status // .success // empty' 2>/dev/null)
-if [[ "$status" == "error" ]] || [[ "$status" == "false" ]]; then
+has_error=$(echo "$response" | jq -r 'if .error then "1" else "0" end' 2>/dev/null)
+if [[ "$status" == "error" ]] || [[ "$status" == "false" ]] || [[ "$has_error" == "1" ]]; then
     error_msg=$(echo "$response" | jq -r '.message // .error // "Nieznany błąd"' 2>/dev/null)
     print_error "Błąd API: $error_msg"
     exit 5

@@ -32,7 +32,7 @@ phpenmod -v 8.0 apcu memcache
 echo "apc.enable_cli=1" >> /etc/php/8.0/cli/php.ini
 echo "apc.enable_cli=1" >> /etc/php/8.0/fpm/php.ini
 
-crontab -l > /tmp/crontasks
+crontab -l > /tmp/crontasks 2>/dev/null || touch /tmp/crontasks
 
 if [[ -d "/storage" ]]; then
     if [[ -d "/storage/nextcloud/" ]]; then
