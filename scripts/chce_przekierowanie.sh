@@ -30,8 +30,10 @@ ufw allow 22 comment "ssh internal"
 ufw allow $ssh comment "ssh external"
 ufw allow $openvpn comment "openVPN"
 ufw allow $port_public comment "$usluga"
-ufw enable
 
+# wlacz przekazywanie pakietow (wymagane do dzialania DNAT)
+sed -i 's/^#net\/ipv4\/ip_forward=1/net\/ipv4\/ip_forward=1/' /etc/ufw/sysctl.conf
+sed -i 's/^DEFAULT_FORWARD_POLICY=.*/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
 
 ipconfset=$(cat <<EOF
 *nat
@@ -41,5 +43,8 @@ COMMIT
 EOF
 )
 echo "$ipconfset" >> /etc/ufw/before.rules
+
+ufw --force enable
+ufw reload
 
 echo "wszytko się poprawnie ustawiło"

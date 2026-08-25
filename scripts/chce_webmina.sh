@@ -15,7 +15,8 @@ bash webmin-setup-repo.sh -f
 apt install webmin --install-recommends -y
 
 # Configuration
-port_number=$(echo -e "30$(hostname | grep -Eo '[0-9]{3}')")
+id="$(hostname)"; id="${id##*[!0-9]}"
+port_number="30${id}"
 sed -i "s|port=10000|port=$port_number|" /etc/webmin/miniserv.conf
 sed -i "s|listen=10000|listen=$port_number|" /etc/webmin/miniserv.conf
 

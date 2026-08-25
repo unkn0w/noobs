@@ -18,7 +18,7 @@ add-apt-repository ppa:ondrej/php -y
 apt update
 
 echo -e "\e[1;32mInstalacja pakietów \e[0m"
-apt install vsftpd unzip nginx mariadb-server php7.4-fpm php7.4-common php7.4-mysql php7.4-gmp php7.4-curl php7.4-intl php7.4-mbstring php7.4-xmlrpc php7.4-gd php7.4-xml php7.4-cli php7.4-zip -y
+apt install vsftpd unzip nginx mariadb-server php8.1-fpm php8.1-common php8.1-mysql php8.1-gmp php8.1-curl php8.1-intl php8.1-mbstring php8.1-xmlrpc php8.1-gd php8.1-xml php8.1-cli php8.1-zip -y || { echo "Instalacja pakietów nie powiodła się."; exit 1; }
 
 echo -e "\e[1;32mBlokada dostępu SSH \e[0m"
 cat >> /etc/ssh/sshd_config <<EOL
@@ -70,20 +70,20 @@ useradd -m shop -s /bin/bash
 echo shop:${SSH_PASS} | chpasswd
 
 echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
-sed -i 's,^file_uploads =.*$,file_uploads = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^allow_url_fopen =.*$,allow_url_fopen = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^short_open_tag =.*$,short_open_tag = On,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^memory_limit =.*$,memory_limit = 256M,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^upload_max_filesize =.*$,upload_max_filesize = 100M,' /etc/php/7.4/fpm/php.ini
-sed -i 's,^max_execution_time =.*$,max_execution_time = 360,' /etc/php/7.4/fpm/php.ini
-cat >> /etc/php/7.4/fpm/php.ini <<EOL
+sed -i 's,^file_uploads =.*$,file_uploads = On,' /etc/php/8.1/fpm/php.ini
+sed -i 's,^allow_url_fopen =.*$,allow_url_fopen = On,' /etc/php/8.1/fpm/php.ini
+sed -i 's,^short_open_tag =.*$,short_open_tag = On,' /etc/php/8.1/fpm/php.ini
+sed -i 's,^memory_limit =.*$,memory_limit = 256M,' /etc/php/8.1/fpm/php.ini
+sed -i 's,^upload_max_filesize =.*$,upload_max_filesize = 100M,' /etc/php/8.1/fpm/php.ini
+sed -i 's,^max_execution_time =.*$,max_execution_time = 360,' /etc/php/8.1/fpm/php.ini
+cat >> /etc/php/8.1/fpm/php.ini <<EOL
 cgi.fix_pathinfo = 0
 date.timezone = Europe/Warsaw
 EOL
 
 echo -e "\e[1;32mUtworzenie dedykowanego PHP pool \e[0m"
-cp /etc/php/7.4/fpm/pool.d/www.conf /etc/php/7.4/fpm/pool.d/shop.conf
-cat > /etc/php/7.4/fpm/pool.d/shop.conf <<EOL
+cp /etc/php/8.1/fpm/pool.d/www.conf /etc/php/8.1/fpm/pool.d/shop.conf
+cat > /etc/php/8.1/fpm/pool.d/shop.conf <<EOL
 [shop]
 user = shop
 group = shop
@@ -98,16 +98,27 @@ pm.max_spare_servers = 3
 EOL
 
 echo -e "\e[1;32mRestart PHP \e[0m"
-systemctl restart php7.4-fpm
+systemctl restart php8.1-fpm
 
 echo -e "\e[1;32mPobieranie PrestaShop \e[0m"
-wget https://download.prestashop.com/download/releases/prestashop_1.7.7.8.zip -O /tmp/prestashop_main.zip
+PRESTASHOP_VERSION="8.1.7"
+if ! wget "https://github.com/PrestaShop/PrestaShop/releases/download/${PRESTASHOP_VERSION}/prestashop_${PRESTASHOP_VERSION}.zip" -O /tmp/prestashop_main.zip; then
+    echo "Pobieranie PrestaShop ${PRESTASHOP_VERSION} nie powiodło się. Przerywam instalację." >&2
+    exit 1
+fi
 
 echo -e "\e[1;32mWypakowywanie do /home/shop i usunięcie niepotrzebnych plików \e[0m"
-unzip /tmp/prestashop_main.zip
-rm Install_PrestaShop.html index.php
-unzip prestashop.zip -d /home/shop
-rm prestashop.zip
+cd /tmp || exit 1
+if ! unzip -o /tmp/prestashop_main.zip; then
+    echo "Rozpakowanie archiwum PrestaShop nie powiodło się." >&2
+    exit 1
+fi
+rm -f Install_PrestaShop.html index.php
+if ! unzip -o prestashop.zip -d /home/shop; then
+    echo "Rozpakowanie prestashop.zip do /home/shop nie powiodło się." >&2
+    exit 1
+fi
+rm -f prestashop.zip
 
 echo -e "\e[1;32mDostosowanie uprawnień \e[0m"
 chown -R shop:shop /home/shop
@@ -115,13 +126,57 @@ chmod -R 755 /home/shop
 chmod -R 777 /home/shop/var
 
 echo -e "\e[1;32mDodanie konfiguracji Nginx \e[0m"
+cat > /etc/nginx/sites-available/prestashop <<EOL
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+    root /home/shop;
+    index index.php;
+    client_max_body_size 100M;
+
+    location / {
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
+    }
+
+    location ~ \.php\$ {
+        try_files \$uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+        fastcgi_pass unix:/run/php/shop.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_param PATH_INFO \$fastcgi_path_info;
+    }
+
+    location ~ ^/(cache|config|logs|src|translations|var|vendor|tests|Dockerfiles)/ {
+        deny all;
+        return 404;
+    }
+
+    location ~* \.(css|js|jpg|jpeg|png|gif|ico|svg|webp|woff|woff2|ttf)\$ {
+        expires max;
+        log_not_found off;
+    }
+}
+EOL
+
+# Walidacja configu PRZED usunieciem dzialajacej strony domyslnej - inaczej w razie bledu
+# zostajemy bez jakiejkolwiek dzialajacej strony na nginx (patrz testy NOOBS #46)
+ln -sf /etc/nginx/sites-available/prestashop /etc/nginx/sites-enabled/prestashop
+if ! nginx -t; then
+    echo "Konfiguracja Nginx dla PrestaShop jest niepoprawna - wycofuję zmiany, domyślna strona nginx zostaje aktywna." >&2
+    rm -f /etc/nginx/sites-enabled/prestashop
+    exit 1
+fi
+
 unlink /etc/nginx/sites-enabled/default
-wget https://raw.githubusercontent.com/gizamichal/NGINX/main/prestashop
-mv prestashop /etc/nginx/sites-available/prestashop
-ln -s /etc/nginx/sites-available/prestashop /etc/nginx/sites-enabled/
 
 echo -e "\e[1;32mRestart Nginx \e[0m"
-systemctl restart nginx
+if ! systemctl restart nginx; then
+    echo "Restart nginx nie powiódł się mimo poprawnej walidacji configu - sprawdź systemctl status nginx." >&2
+    exit 1
+fi
 
 echo -e "\e[1;32mDalsze instrukcje w pliku prestashop.txt \e[0m"
 GATEWAY="$(/sbin/ip route | awk '/default/ { print $3 }')"

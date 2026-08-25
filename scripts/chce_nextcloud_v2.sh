@@ -8,8 +8,8 @@ apt update && apt install -y lsb-release ca-certificates apt-transport-https sof
 os_check=$(cat /etc/os-release | grep "^ID=")
 if [[ $os_check == "ID=debian" ]] ;
 then
-echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list
-wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add -
+wget -qO - https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/sury-php.gpg
+echo "deb [signed-by=/usr/share/keyrings/sury-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list
 elif [[ $os_check == "ID=ubuntu" ]] ;
 then
 apt-add-repository ppa:ondrej/php -y
@@ -32,7 +32,7 @@ phpenmod -v 8.0 apcu memcache
 echo "apc.enable_cli=1" >> /etc/php/8.0/cli/php.ini
 echo "apc.enable_cli=1" >> /etc/php/8.0/fpm/php.ini
 
-crontab -l > /tmp/crontasks
+crontab -l > /tmp/crontasks 2>/dev/null || touch /tmp/crontasks
 
 if [[ -d "/storage" ]]; then
     if [[ -d "/storage/nextcloud/" ]]; then

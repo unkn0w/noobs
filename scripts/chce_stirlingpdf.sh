@@ -61,7 +61,10 @@ APP="Stirling-PDF"
 INSTALL_DIR="/opt/Stirling-PDF"
 TEMP_DIR="/tmp/stirling-pdf"
 SERVICE_FILE="/etc/systemd/system/stirlingpdf.service"
-JAVA_VERSION="17"
+# Stirling-PDF zawsze buduje z "latest" release'u z GitHuba, a jego build.gradle
+# (modernJavaVersion) wymaga obecnie JDK 25 dla podzadania :compileRestartHelper - JDK 17
+# powodowało "release version 25 not supported" i przerywało budowanie w połowie.
+JAVA_VERSION="25"
 CUSTOM_PORT=""
 
 REQUIRED_TOOLS=("curl" "wget" "tar" "systemctl")

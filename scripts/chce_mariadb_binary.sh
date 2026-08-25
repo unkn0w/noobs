@@ -26,9 +26,6 @@ elif [ -z "$4" ]; then
     exit 1
 else
 
-apt install w3m -y
-
-check_user_exist=$(cat /etc/passwd | grep "$1")
 check_number='^[0-9]+$'
 db_user="$1"
 db_port="$2"
@@ -37,7 +34,7 @@ sciezka="$4"
 service_name="mariadb-${db_user}-${db_port}.service"
 service_path="/etc/systemd/system/${service_name}"
 
-if [[ $check_user_exist == "root" ]]; then
+if [[ "$db_user" == "root" ]]; then
 echo "Userem nie może być root!"
 exit 1
 fi
@@ -52,20 +49,81 @@ if [ -z $line ]; then
     exit 1
 fi
 
-if [[ -z $check_user_exist ]] ; then
+if ! id -u "$db_user" &>/dev/null ; then
 useradd -M -N -s /usr/sbin/nologin "$db_user"
 fi
 
 mkdir -p "$sciezka"
-cd "$sciezka"
-versions=$(curl https://mariadb.com/docs/release-notes/latest-releases | w3m -dump -T text/html | grep -oP 'MariaDB\s\d+\.\d+(\.\d+)?' | sed 's/MariaDB\s//' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -u)
-latest=$(echo "$versions" | grep "^$line\." | sort -V | tail -n1)
-wget https://mirror.vpsfree.cz/mariadb/mariadb-"$latest"/bintar-linux-systemd-x86_64/mariadb-"$latest"-linux-systemd-x86_64.tar.gz -O "$4"/mariadb.tar.gz
-cd "$sciezka" && tar -xzvf mariadb.tar.gz --strip-components 1
+cd "$sciezka" || exit 1
+
+# Wersje MariaDB od dawna sa numerowane major.minor (np. 11.4, 11.8), nie samym majorem -
+# jesli user poda tylko "11" (jak sugeruje komunikat uzycia tego skryptu), rozwiazujemy to
+# do najnowszej stabilnej linii minor w ramach tego majora (np. 11 -> 11.8).
+resolved_line="$line"
+if [[ "$line" =~ ^[0-9]+$ ]]; then
+    resolved_line=$(curl -sf "https://downloads.mariadb.org/rest-api/mariadb/" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+candidates = [r['release_id'] for r in d.get('major_releases', [])
+              if r['release_id'].split('.')[0] == '$line' and r.get('release_status') == 'Stable']
+candidates.sort(key=lambda v: [int(x) for x in v.split('.')], reverse=True)
+print(candidates[0] if candidates else '')
+" 2>/dev/null)
+    if [ -z "$resolved_line" ]; then
+        echo "Nie znaleziono stabilnej linii MariaDB w obrębie majora ${line}." >&2
+        exit 1
+    fi
+    echo "Linia wersji '${line}' rozwiazana do '${resolved_line}'."
+fi
+
+# Oficjalne REST API MariaDB - zwraca najnowszy patch danej linii wersji wraz z URL-em do tarballa
+release_json=$(curl -sf "https://downloads.mariadb.org/rest-api/mariadb/${resolved_line}/latest/")
+if [ -z "$release_json" ]; then
+    echo "Nie udalo sie pobrac informacji o wersji MariaDB ${resolved_line} z downloads.mariadb.org. Sprawdz czy taka linia wersji istnieje." >&2
+    exit 1
+fi
+
+download_url=$(echo "$release_json" | grep -oP '"file_download_url":\s*"\K[^"]+(?=".*"linux-systemd-x86_64\.tar\.gz)' | head -n1)
+if [ -z "$download_url" ]; then
+    download_url=$(echo "$release_json" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for rel in d.get('releases', {}).values():
+    for f in rel.get('files', []):
+        if f.get('os') == 'Linux' and f.get('cpu') == 'x86_64' and 'systemd' in (f.get('file_name') or ''):
+            print(f['file_download_url'])
+            break
+" 2>/dev/null)
+fi
+
+if [ -z "$download_url" ]; then
+    echo "Nie znaleziono paczki linux-systemd-x86_64 dla linii wersji ${resolved_line}. Przerywam." >&2
+    exit 1
+fi
+
+if ! wget -L "$download_url" -O "$sciezka"/mariadb.tar.gz; then
+    echo "Pobieranie MariaDB nie powiodlo sie (URL: $download_url)." >&2
+    exit 1
+fi
+
+cd "$sciezka" || exit 1
+if ! tar -xzvf mariadb.tar.gz --strip-components 1; then
+    echo "Rozpakowanie archiwum MariaDB nie powiodlo sie." >&2
+    exit 1
+fi
 mkdir -p "$sciezka"/mysql_secure "$sciezka"/data
 chown -R "$1" "$sciezka"/
-rm *.tar.gz
-./scripts/mariadb-install-db --basedir="$sciezka" --datadir="$sciezka/data" --user="$1"
+rm -f "$sciezka"/mariadb.tar.gz
+
+if [ ! -x "$sciezka/scripts/mariadb-install-db" ]; then
+    echo "Brak scripts/mariadb-install-db w rozpakowanym archiwum - instalacja przerwana." >&2
+    exit 1
+fi
+
+if ! ./scripts/mariadb-install-db --basedir="$sciezka" --datadir="$sciezka/data" --user="$1"; then
+    echo "mariadb-install-db zakonczylo sie bledem - serwis systemd nie zostanie utworzony." >&2
+    exit 1
+fi
 
 
 cat > "$service_path" <<EOF

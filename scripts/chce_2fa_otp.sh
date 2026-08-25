@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ $EUID -ne 0 ]]; then
+    echo -e "\033[0;31mUruchom ten skrypt jako root (sudo).\033[0m"
+    exit 1
+fi
+
 if [ -f "/etc/pam.d/sshd" ]; then
     if grep -Fq "pam_google_authenticator.so" "/etc/pam.d/sshd"; then
         echo -e "\033[0;31m2FA prawdopodobnie jest już skonfigurowane na twoim systemie."

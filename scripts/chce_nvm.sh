@@ -5,8 +5,8 @@
 
 if ( ! command -v git > /dev/null 2>&1 ); then
     echo "Instalowanie 'git'..."
-    sudo apt-get update && sudo apt-get install git
-    if [[ $EUID -ne 0 ]]; then
+    sudo apt-get update && sudo apt-get install -y git
+    if [[ $? -ne 0 ]]; then
         echo "Nie można zainstalować 'git'! Sprawdź co się stało powyżej."
         exit 1
     fi

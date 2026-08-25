@@ -28,7 +28,7 @@ if [[ "${VERSION_ID:0:2}" -lt 22 ]]; then
 fi
 
 echo "Usuwanie starych lub innych implementacji Dockera..."
-apt-get remove $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc | cut -f1)
+apt-get remove -y $(dpkg --get-selections docker.io docker-compose docker-compose-v2 docker-doc podman-docker containerd runc | cut -f1)
 if [[ $? -ne 0 ]]; then
     echo "Wystąpił błąd podczas usuwania! Zobacz co się stało powyżej."
     exit 1
@@ -93,7 +93,7 @@ fi
 # Nadanie uprawnień do Dockera dla domyślnego użytkownika.
 DEFAULT_USER=$(getent passwd 1000 | cut -d ":" -f 1)
 if [ ! "$DEFAULT_USER" == "" ]; then
-    groupadd docker
+    groupadd -f docker
     usermod -aG docker $DEFAULT_USER
     echo "Dodano uprawnienia do Dockera dla konta '$DEFAULT_USER'."
     echo "Zalecane jest ponownie uruchomienie Mikrusa z panelu."

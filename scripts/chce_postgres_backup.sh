@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail
 
 #In "your_location" place put your data
 #Location to place backups.
@@ -20,14 +21,18 @@ echo "Dumping database to ${BACKUP_DIR}${DB_NAME}_${BACKUP_DATE}.sql"
 
 if [ ! -d "${BACKUP_DIR}" ]; then
     mkdir -p "${BACKUP_DIR}"
-fi 
-   
+fi
+
+if ! command -v pg_dump &> /dev/null; then
+    sudo apt-get install -y postgresql-client
+fi
+
 # Attempt to create the backup
 if PGPASSWORD="${DB_PASSWORD}" pg_dump -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -w --format=custom | xz > "${BACKUP_DIR}${DB_NAME}_${BACKUP_DATE}.xz"; then
     echo "Dumping database finished successfully"
     
     # Delete old backups, but only if a current backup exists
-    find "${BACKUP_DIR}" -type f -prune -mtime +"${NUMBER_OF_DAYS}" -exec rm -f {} \;
+    find "${BACKUP_DIR}" -maxdepth 1 -type f -name "${DB_NAME}_*.xz" -mtime +"${NUMBER_OF_DAYS}" -exec rm -f {} \;
     echo "Old backups deleted"
 else
     echo "Error: Dumping database failed"

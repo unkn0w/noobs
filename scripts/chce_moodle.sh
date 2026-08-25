@@ -60,6 +60,9 @@ echo -e "\e[1;32mDodanie dedykowanego usera dla web servera \e[0m"
 SSH_PASS="$(openssl rand -base64 12)"
 useradd -m moodle -s /bin/bash
 echo moodle:${SSH_PASS} | chpasswd
+# useradd -m tworzy katalog domowy z uprawnieniami 750 - bez +x dla "innych" nginx (www-data)
+# nie może wejść do /home/moodle/public_html, więc strona jest niedostępna zaraz po instalacji.
+chmod o+x /home/moodle
 
 echo -e "\e[1;32mZmiana ustawień PHP \e[0m"
 cat >> /etc/php/7.4/fpm/php.ini <<EOL
@@ -121,11 +124,16 @@ mysql -e "GRANT ALL PRIVILEGES ON moodle.* TO 'moodle'@'localhost';"
 mysql -e "FLUSH PRIVILEGES;"
 
 echo -e "\e[1;32mPobieranie Moodle \e[0m"
-wget https://download.moodle.org/stable311/moodle-3.11.2.tgz -O /tmp/moodle.tgz
-
-echo -e "\e[1;32mRozpakowanie archiwum \e[0m"
-tar -zvxf /tmp/moodle.tgz -C /home/moodle
-mv /home/moodle/moodle /home/moodle/public_html
+# download.moodle.org/stableXXX/*.tgz linki są nietrwałe (stare wersje znikają, jak w tym
+# przypadku 3.11.2 z 2021 -> 404). Oficjalne, zawsze aktualne źródło to git.moodle.org / lustro
+# na GitHubie z gałęzią MOODLE_XXX_STABLE.
+MOODLE_BRANCH="MOODLE_502_STABLE"
+apt install -y git
+if ! git clone --depth 1 --branch "$MOODLE_BRANCH" https://github.com/moodle/moodle.git /home/moodle/public_html; then
+    echo "Pobranie Moodle (gałąź $MOODLE_BRANCH) nie powiodło się." >&2
+    exit 1
+fi
+rm -rf /home/moodle/public_html/.git
 
 echo -e "\e[1;32mZmiana uprawnień \e[0m"
 chown moodle:moodle -R /home/moodle/public_html

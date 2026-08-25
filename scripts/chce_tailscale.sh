@@ -16,6 +16,11 @@ if command -v tailscale &> /dev/null; then
     exit 0
 fi
 
+if [ ! -e /dev/net/tun ]; then
+    echo "Aby użyć Tailscale, musisz mieć włączony TUN/TAP na swoim serwerze."
+    exit 1
+fi
+
 if [ ! -f /etc/os-release ]; then
     echo "Nie można wykryć systemu operacyjnego!"
     exit 1
@@ -49,14 +54,14 @@ echo "Wykryto instalację Ubuntu '$UBUNTU_CODENAME'."
 
 echo "Pobieranie klucza GPG Tailscale..."
 curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null
-if [[ $? -ne 0 ]]; then
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     echo "Nie udało się pobrać klucza GPG Tailscale!"
     exit 1
 fi
 
 echo "Dodawanie repozytorium Tailscale..."
 curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/$UBUNTU_CODENAME.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list
-if [[ $? -ne 0 ]]; then
+if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
     echo "Nie udało się dodać repozytorium Tailscale!"
     exit 1
 fi

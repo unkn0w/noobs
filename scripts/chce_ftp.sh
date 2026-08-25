@@ -12,9 +12,10 @@ err() {
 sudo --validate || { err "Nie masz uprawnien do uruchamiania komend jako root - dodaj '$USER' do grupy 'sudoers'."; }
 
 hostname=$(hostname)
-# pZ: Jesli serwer ma nazwe 'xxxxxxx123' (cyfry na koncu moga byc dowolne) to pobieram trzy ostatnie cyfry
-listen_port=20${hostname:(-3)}
-listen_port30=30${hostname:(-3)}
+# pZ: pobieram numer kontenera z konca nazwy hosta (dowolna dlugosc, np. g5, g225, tony1234)
+id="${hostname##*[!0-9]}"
+listen_port=20${id}
+listen_port30=30${id}
 vsftpd_conf=/etc/vsftpd.conf
 
 if (sudo lsof -i:"${listen_port}" | grep -q PID) ; then

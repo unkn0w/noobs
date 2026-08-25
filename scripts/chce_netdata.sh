@@ -20,8 +20,9 @@ done
 
 
 if [ -z "$port" ]; then
-    echo "Give desired port for netdata: (i.e. 20xxx or 30xxx):"
-    read -r port
+    id="$(hostname)"; id="${id##*[!0-9]}"
+    read -p "Podaj port dla netdata [domyslnie: 30${id}]: " port
+    port=${port:-30${id}}
 fi
 
 extra_args=()
@@ -47,8 +48,14 @@ apt install -y curl
 echo
 
 # install netdata
-bash <(curl -Ss https://my-netdata.io/kickstart.sh) "${extra_args[@]}"
+bash <(curl -SsL https://my-netdata.io/kickstart.sh) "${extra_args[@]}"
 
 # change default netdata port and restart service
-sed -i "s|# default port = 19999|default port = $port|" /etc/netdata/netdata.conf
+# (nowy, minimalny netdata.conf czesto nie zawiera juz linii "# default port = 19999")
+touch /etc/netdata/netdata.conf
+if ! grep -q '^\[web\]' /etc/netdata/netdata.conf; then
+    printf '\n[web]\n' >> /etc/netdata/netdata.conf
+fi
+sed -i '/^\[web\]/,/^\[/{/default port/d}' /etc/netdata/netdata.conf
+sed -i "/^\[web\]/a\\    default port = $port" /etc/netdata/netdata.conf
 service netdata restart

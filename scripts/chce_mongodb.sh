@@ -5,16 +5,41 @@
 #
 
 
-wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add - && { printf "Prawidłowo zaimportowano klucz do repozytorium MongoDB"; } || { sudo apt-get install gnupg; wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add - ;  printf "\nZainstalowano pakiet gnugp oraz prawidłowo zaimportowano klucz do repozytorium MongoDB\n";}
+# MongoDB 8.0+ crashuje na starcie ("Linux kernel versions 6.19 and newer has a known
+# incompatibility", SERVER-121912/tcmalloc) na jądrach Proxmoksa z zakresu 6.19-7.0.13 - a
+# Mikrus hostuje kontenery właśnie na takich jądrach (zweryfikowano na dev.mikr.us, kernel
+# 7.0.2-6-pve). MongoDB 7.0 nie ma tego problemu i jest wspierane do 2027-08-31.
+MONGO_LINE="7.0"
+sudo apt-get install -y gnupg
+wget -qO - https://www.mongodb.org/static/pgp/server-${MONGO_LINE}.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-${MONGO_LINE}.gpg && printf "Prawidłowo zaimportowano klucz do repozytorium MongoDB\n"
 
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+codename="$(lsb_release -cs)"
+# repo.mongodb.org publikuje pakiety mongodb-org 7.0 tylko dla focal/jammy - na nowszych
+# dystrybucjach (np. noble) używamy najbliższego wspieranego (jammy); pakiety instalują się
+# i działają poprawnie także na noble (zweryfikowano).
+case "$codename" in
+    focal|jammy) repo_codename="$codename" ;;
+    *) repo_codename="jammy" ;;
+esac
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-${MONGO_LINE}.gpg ] https://repo.mongodb.org/apt/ubuntu ${repo_codename}/mongodb-org/${MONGO_LINE} multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-${MONGO_LINE}.list
 
 sudo apt-get update
 
-sudo apt-get install -y mongodb-org
+if ! sudo apt-get install -y mongodb-org; then
+    printf "\nBLAD: instalacja pakietu mongodb-org nie powiodla sie (repo %s/mongodb-org/%s moze byc niewspierane).\n" "$repo_codename" "$MONGO_LINE"
+    exit 1
+fi
 
-sudo systemctl start mongod && { printf "\nPrawidłowo uruchomiono MongoDB\n";} || { sudo systemctl daemon-reload; sudo systemctl start mongod
-}
+sudo systemctl daemon-reload
+sudo systemctl enable --now mongod
+# mongod.service ma Type=simple - "systemctl start" wraca natychmiast i NIE czeka na to,
+# czy proces faktycznie wystartował, wiec sprawdzenie exit code samego "enable --now" nie
+# wystarczy (i tak zwroci 0, nawet jesli mongod zaraz potem sie wywali).
+sleep 3
+if ! sudo systemctl is-active --quiet mongod; then
+    printf "\nBLAD: mongod nie jest aktywny po probie uruchomienia - sprawdz: systemctl status mongod\n"
+    exit 1
+fi
 
 printf "\nMongoDB jest poprawnie zainstalowana i uruchomiona\n"
 

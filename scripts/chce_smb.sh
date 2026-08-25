@@ -40,14 +40,18 @@ echo "---------------------------------------------"
 echo "[*] Ustawianie katalogu przebiegło pomyślnie."
 echo "[*] Udostępniany katalog: '$path'"
 
-echo "[*] Dodawanie niezbędnych konfiguracji..."
-echo "[share]" >> /etc/samba/smb.conf
-echo "    comment = Samba dla $USER" >> /etc/samba/smb.conf
-echo "    path = $path" >> /etc/samba/smb.conf
-echo "    read only = no" >> /etc/samba/smb.conf 
-echo "    browsable = yes" >> /etc/samba/smb.conf 
-echo "    create mask = 0775" >> /etc/samba/smb.conf
-echo "    directory mask = 0775" >> /etc/samba/smb.conf
+if grep -q "^\[share\]" /etc/samba/smb.conf; then
+    echo "[!] Sekcja [share] już istnieje w /etc/samba/smb.conf, pomijanie dopisywania"
+else
+    echo "[*] Dodawanie niezbędnych konfiguracji..."
+    echo "[share]" >> /etc/samba/smb.conf
+    echo "    comment = Samba dla $USER" >> /etc/samba/smb.conf
+    echo "    path = $path" >> /etc/samba/smb.conf
+    echo "    read only = no" >> /etc/samba/smb.conf
+    echo "    browsable = yes" >> /etc/samba/smb.conf
+    echo "    create mask = 0775" >> /etc/samba/smb.conf
+    echo "    directory mask = 0775" >> /etc/samba/smb.conf
+fi
 
 echo "[*] Restartowanie serwera samba i dodawanie go do autostartu"
 sudo service smbd restart

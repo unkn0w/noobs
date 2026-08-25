@@ -24,6 +24,9 @@ apt install -y nginx php php-fpm php-zip php-xml php-sqlite3 php-pgsql php-mysql
 # dodanie MariaDB (klient i serwer)
 apt install -y mariadb-server mariadb-client
 
+# nazwa socketu php-fpm zawiera numer wersji (np. php8.3-fpm.sock)
+PHP_VERSION="$(/usr/bin/php.default -v | head -1 | cut -c5-7)"
+
 # utworzenie konfiguracji wspierającej PHP w nginx
 config=$(cat <<EOF
 server {
@@ -43,7 +46,7 @@ server {
    location ~ \.php\$ {
       include snippets/fastcgi-php.conf;
       
-      fastcgi_pass unix:/var/run/php/php-fpm.sock;
+      fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
    }
 }
 EOF

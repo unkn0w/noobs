@@ -14,9 +14,11 @@ find_output_dir(){
     then
         output_dir="/storage/backup"
     else
-        if [ -s "/backup_key" ] 
+        if [ -s "/backup_key" ]
         then
-            echo -e "Host strych.mikr.us\nuser $HOSTNAME\nIdentityFile /backup_key" >> ~/.ssh/config
+            if ! grep -q "^Host strych.mikr.us$" ~/.ssh/config 2>/dev/null; then
+                echo -e "Host strych.mikr.us\nuser $HOSTNAME\nIdentityFile /backup_key" >> ~/.ssh/config
+            fi
             output_dir="strych.mikr.us:~/backup"
         else
             echo "---------------------------------------------------------------"
@@ -28,12 +30,14 @@ find_output_dir(){
 }
 
 install_packages(){
+    sudo apt-get install -y acl
     sudo wget https://mikr.us/tools/rsnappush -O /usr/bin/rsnappush
     sudo chmod +x /usr/bin/rsnappush
 }
 
 configure_cron(){
     echo -e "#!/bin/sh\n/usr/bin/rsnappush /etc/ $output_dir/etc/\n/usr/bin/rsnappush /home/ $output_dir/home/\n/usr/bin/rsnappush /var/log/ $output_dir/logs/" > /etc/cron.daily/backup
+    chmod +x /etc/cron.daily/backup # run-parts pomija nieuruchamialne pliki
 }
 
 find_output_dir

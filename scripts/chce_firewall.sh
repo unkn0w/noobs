@@ -37,9 +37,9 @@ host_num="$(hostname)"
 host_num="${host_num##*[!0-9]}" # Wyciąga sam numer z nazwy hosta (np. zygfryd123 -> 123)
 
 if [[ -n "$host_num" ]]; then
-    port1=$((10000 + host_num))
-    port2=$((20000 + host_num))
-    port3=$((30000 + host_num))
+    port1="10${host_num}"
+    port2="20${host_num}"
+    port3="30${host_num}"
 
     echo "Dodawanie standardowych portów Mikrus (host $host_num)..."
     add_port "$port1"
@@ -62,7 +62,7 @@ fi
 
 echo "Finalizowanie konfiguracji..."
 
-sudo ufw enable
+sudo ufw --force enable
 
 echo "✅ Firewall został włączony."
 

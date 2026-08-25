@@ -31,8 +31,8 @@ if ! /usr/local/bin/wp core is-installed --allow-root 2>/dev/null; then
 
     # Generyczna baza danych
     # https://bash.0x1fff.com/polecenia_wbudowane/polecenie_readonly.html
-    readonly DB=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
-    readonly DBPASS=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+    readonly DB=$(head -c 1000 /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 12 | head -n 1)
+    readonly DBPASS=$(head -c 1000 /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 
     readonly Q1="CREATE DATABASE IF NOT EXISTS wp_$DB;"
     readonly Q2="GRANT ALL ON wp_$DB.* TO 'wp_$DB'@'localhost' IDENTIFIED BY '$DBPASS';"

@@ -59,7 +59,8 @@ if [[ ! -c /dev/net/tun ]]; then
 fi
 
 if [[ -z "$port" ]]; then
-    port="$(( 20000 + $(hostname | grep -o '[0-9]\+') ))"
+    id="$(hostname)"; id="${id##*[!0-9]}"
+    port="20${id}"
 fi
 
 if lsof -i:$port > /dev/null 2>&1 ; then
@@ -75,20 +76,13 @@ echo "Download configuration script and run it."
 curl -O https://raw.githubusercontent.com/angristan/openvpn-install/master/openvpn-install.sh
 chmod +x openvpn-install.sh
 
-export AUTO_INSTALL=y
-export APPROVE_INSTALL=y
-export APPROVE_IP=y
-export ENDPOINT="$host"
-export IPV6_SUPPORT=n
-export PORT_CHOICE=2
-export PORT=$port
-export PROTOCOL_CHOICE=1
-export DNS=1
-export COMPRESSION_ENABLED=n
-export CUSTOMIZE_ENC=n
-export PASS=1
-
-./openvpn-install.sh
+# angristan/openvpn-install przeszedl z konfiguracji przez zmienne srodowiskowe (PORT_CHOICE,
+# AUTO_INSTALL itd.) na CLI oparte o subkomendy ("install", "client", "server"). Stary interfejs
+# jest ignorowany przez aktualna wersje skryptu - bez tej zmiany install nigdy sie nie wykonuje.
+if ! ./openvpn-install.sh install --endpoint "$host" --port "$port" --protocol udp --dns cloudflare; then
+    echo "Instalacja OpenVPN nie powiodła się." >&2
+    exit 1
+fi
 
 mv openvpn-install.sh ~/openvpn-install.sh
-echo "In order to add new clients, run ~/openvpn-install.sh"
+echo "In order to manage clients, run ~/openvpn-install.sh client add <name> / client list / client revoke <name>"

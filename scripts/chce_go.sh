@@ -40,9 +40,10 @@ else
 fi
 
 # If Go PATH export doesn't exist, add it
-if ! grep 'export PATH=$PATH:/usr/local/go/bin' $PROFILE_PATH > /dev/null ; then
+touch "$PROFILE_PATH"
+if ! grep 'export PATH=$PATH:/usr/local/go/bin' "$PROFILE_PATH" > /dev/null ; then
   echo -e "Dodaje Go do PATH w pliku $PROFILE_PATH\n"
-  echo 'export PATH=$PATH:/usr/local/go/bin' >> $(ls $PROFILE_PATH)
+  echo 'export PATH=$PATH:/usr/local/go/bin' >> "$PROFILE_PATH"
 fi
 
 # Drop good news
