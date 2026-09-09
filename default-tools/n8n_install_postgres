@@ -12,7 +12,7 @@ RED='\033[0;31m'
 YELLOW='\033[0;33m'
 NORMAL='\033[0m'
 
-availableMemory=$(free -m | awk '/^Mem:/ {print $2}')
+availableMemory=$(free -m | awk '/^(Mem|Pam)/ {print $2}')
 
 if [ ${availableMemory} -gt ${MINIMALRAM} ]; then
     echo -e "${GREEN}System ma ponad ${MINIMALRAM}MB pamięci RAM${NORMAL}"
@@ -20,6 +20,28 @@ else
     echo -e "${RED}System ma mniej niż ${MINIMALRAM}MB pamięci RAM - to nie zadziała...${NORMAL}"
     exit 2
 fi
+
+# --- podział pamięci ---------------------------------------------------------
+# Tu działają DWA kontenery: n8n (Node) i pg_n8n (PostgreSQL). Każdy dostaje
+# własny twardy limit cgroup, a Node wewnątrz kontenera n8n ma jeszcze sufit
+# sterty (--max-old-space-size) wyraźnie niższy od limitu swojego kontenera:
+#   - narzut V8 procesu głównego ~130 MB
+#   - osobny proces "JS Task Runner" (N8N_RUNNERS_ENABLED=true) ~150-250 MB
+# Zostawiamy zapas RAM dla systemu VPS-a i demona Dockera poza kontenerami.
+# Stare wyliczenie dawało kontenerowi n8n RAM-100 (a Postgresowi nic) i kończyło
+# się OOM-killem node albo postgresa przy realnym obciążeniu.
+OS_RESERVE=512                                    # OS + dockerd + watchtower + cache
+PG_MEM=512                                        # twardy limit dla kontenera PostgreSQL
+containerMem=$(( availableMemory - OS_RESERVE - PG_MEM ))
+[ "$containerMem" -lt 512 ] && containerMem=512
+
+nodeHeap=$(( containerMem * 70 / 100 ))           # 70% limitu kontenera n8n
+heapCap=$(( containerMem - 320 ))                 # rezerwa na narzut V8 + task runner
+[ "$nodeHeap" -gt "$heapCap" ] && nodeHeap=$heapCap
+[ "$nodeHeap" -lt 384 ] && nodeHeap=384
+
+echo -e " ${GREEN}> Limit n8n: ${containerMem} MB (sterta Node ${nodeHeap} MB), limit PostgreSQL: ${PG_MEM} MB${NORMAL}"
+# ---------------------------------------------------------------------------
 
 # wczytanie konfiguracji z pliku (jeśli istnieje)
 CONFIG_FILE="/root/.n8n/mikrus.cfg"
@@ -113,6 +135,9 @@ docker run -itd \
   -e POSTGRES_USER=n8n \
   -e POSTGRES_PASSWORD=n8n \
   -e POSTGRES_DB=n8n \
+  --memory=${PG_MEM}m \
+  --memory-swap=${PG_MEM}m \
+  --memory-swappiness=0 \
   --restart unless-stopped \
   --name pg_n8n \
   -v ~/.pg_n8n:/var/lib/postgresql/data \
@@ -127,8 +152,8 @@ docker exec -it pg_n8n psql -U n8n -c "create extension if not exists vector;"
 
 # uruchamiamy n8n
 docker run -itd \
-  --memory=$[$availableMemory-100]m \
-  --memory-swap=$[$availableMemory-100]m \
+  --memory=${containerMem}m \
+  --memory-swap=${containerMem}m \
   --memory-swappiness=0 \
   --name n8n \
   -p ${portNR}:5678 \
@@ -148,7 +173,7 @@ docker run -itd \
   -e EXECUTIONS_DATA_PRUNE=true \
   -e EXECUTIONS_DATA_MAX_AGE=336 \
   -e EXECUTIONS_DATA_PRUNE_MAX_COUNT=2000 \
-  -e NODE_OPTIONS=--max-old-space-size=$[$availableMemory-200] \
+  -e NODE_OPTIONS=--max-old-space-size=${nodeHeap} \
   -e GENERIC_TIMEZONE="Europe/Warsaw" \
   -e WEBHOOK_URL=https://${domain} \
   --link pg_n8n:db \

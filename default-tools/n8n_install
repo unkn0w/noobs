@@ -21,6 +21,27 @@ else
     exit 2
 fi
 
+# --- podział pamięci ---------------------------------------------------------
+# Kontener n8n dostaje twardy limit cgroup (--memory), a Node WEWNĄTRZ niego ma
+# własny sufit sterty (--max-old-space-size). Sufit sterty musi być wyraźnie
+# niższy od limitu kontenera, bo w tym samym cgroupie mieszczą się jeszcze:
+#   - narzut V8 procesu głównego (kod, JIT, bufory, stosy) ~130 MB
+#   - osobny proces "JS Task Runner" (N8N_RUNNERS_ENABLED=true) ~150-250 MB
+# Zostawiamy też zapas RAM dla systemu VPS-a i demona Dockera POZA kontenerem.
+# Stare wyliczenie (heap = RAM-200 w kontenerze RAM-100) dawało 100 MB zapasu
+# i kończyło się OOM-killem procesu node przy cięższych workflow.
+OS_RESERVE=512                                    # OS + dockerd + watchtower + cache
+containerMem=$(( availableMemory - OS_RESERVE ))
+[ "$containerMem" -lt 512 ] && containerMem=512
+
+nodeHeap=$(( containerMem * 70 / 100 ))           # 70% limitu kontenera
+heapCap=$(( containerMem - 320 ))                 # rezerwa na narzut V8 + task runner
+[ "$nodeHeap" -gt "$heapCap" ] && nodeHeap=$heapCap
+[ "$nodeHeap" -lt 384 ] && nodeHeap=384
+
+echo -e " ${GREEN}> Limit kontenera: ${containerMem} MB, sterta Node: ${nodeHeap} MB${NORMAL}"
+# ---------------------------------------------------------------------------
+
 # wczytanie konfiguracji z pliku (jeśli istnieje)
 CONFIG_FILE="/root/.n8n/mikrus.cfg"
 if [ -f "$CONFIG_FILE" ]; then
@@ -90,8 +111,8 @@ docker pull n8nio/n8n:latest
 docker pull nickfedor/watchtower
 
 docker run -itd \
-  --memory=$[$availableMemory-100]m \
-  --memory-swap=$[$availableMemory-100]m \
+  --memory=${containerMem}m \
+  --memory-swap=${containerMem}m \
   --memory-swappiness=0 \
   --name n8n \
   -p ${portNR}:5678 \
@@ -106,7 +127,7 @@ docker run -itd \
   -e EXECUTIONS_DATA_PRUNE=true \
   -e EXECUTIONS_DATA_MAX_AGE=336 \
   -e EXECUTIONS_DATA_PRUNE_MAX_COUNT=2000 \
-  -e NODE_OPTIONS=--max-old-space-size=$[$availableMemory-200] \
+  -e NODE_OPTIONS=--max-old-space-size=${nodeHeap} \
   -e GENERIC_TIMEZONE="Europe/Warsaw" \
   -e WEBHOOK_URL=https://${domain} \
   n8nio/n8n:latest
