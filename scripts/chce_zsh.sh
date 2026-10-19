@@ -8,8 +8,8 @@ sudo apt update && sudo apt install -y zsh git
 wget https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh -O- | RUNZSH=no sh
 
 # instalacja zewnętrznych, niestandardowych rozszerzeń
-git clone https://github.com/agkozak/zsh-z ~/.oh-my-zsh/plugins/zsh-z
-git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/plugins/zsh-syntax-highlighting
+git clone https://github.com/agkozak/zsh-z ~/.oh-my-zsh/custom/plugins/zsh-z
+git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
 
 # aktywujemy
 sed -i 's|plugins=.*|plugins=(git zsh-z docker docker-compose sudo zsh-syntax-highlighting ufw ubuntu screen)|' ~/.zshrc
